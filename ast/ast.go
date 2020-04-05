@@ -1,5 +1,7 @@
 package ast
 
+import "monkey/token"
+
 // Node a tree node
 type Node interface {
 	TokenLiteral() string
@@ -31,10 +33,29 @@ type Program struct {
 	Statements Statements
 }
 
-// TokenLiteral the literal vale of the token
-func (p *Program) TokenLiteral() string {
+// tokenLiteral the literal vale of the token
+func (p *Program) tokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
 	}
 	return ""
 }
+
+// LetStatement represents a let statement in the AST
+type LetStatement struct {
+	Token token.Token // the token.LET token
+	Name  *Identifier
+	Value Expression
+}
+
+func (ls *LetStatement) statementNode()       {}
+func (ls *LetStatement) tokenLiteral() string { return ls.Token.Literal }
+
+// Identifier represents an identifier in a statement
+type Identifier struct {
+	Token token.Token // the token.IDENT token
+	Value string
+}
+
+func (i *Identifier) expressionNode()      {}
+func (i *Identifier) tokenLiteral() string { return i.Token.Literal }
