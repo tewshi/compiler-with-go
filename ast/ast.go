@@ -33,8 +33,8 @@ type Program struct {
 	Statements Statements
 }
 
-// tokenLiteral the literal vale of the token
-func (p *Program) tokenLiteral() string {
+// TokenLiteral the literal value of the token
+func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
 	}
@@ -48,8 +48,10 @@ type LetStatement struct {
 	Value Expression
 }
 
-func (ls *LetStatement) statementNode()       {}
-func (ls *LetStatement) tokenLiteral() string { return ls.Token.Literal }
+func (ls *LetStatement) statementNode() {}
+
+// TokenLiteral the literal value of the let statement token
+func (ls *LetStatement) TokenLiteral() string { return ls.Token.Literal }
 
 // Identifier represents an identifier in a statement
 type Identifier struct {
@@ -57,5 +59,7 @@ type Identifier struct {
 	Value string
 }
 
-func (i *Identifier) expressionNode()      {}
-func (i *Identifier) tokenLiteral() string { return i.Token.Literal }
+func (i *Identifier) expressionNode() {}
+
+// TokenLiteral the literal value of the identifier token
+func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
