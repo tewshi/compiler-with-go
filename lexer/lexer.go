@@ -30,6 +30,7 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
+// peekChar returns the char after the current char if there's one
 func (l *Lexer) peekChar() byte {
 	if l.readPosition >= len(l.input) {
 		return 0
@@ -120,10 +121,13 @@ func (l *Lexer) NextToken() token.Token {
 	l.readChar()
 	return tok
 }
+
+// newToken creates a token given its type and the character
 func newToken(tokenType token.Type, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
+// readIdentifier reads and returns an identifier from the input
 func (l *Lexer) readIdentifier() string {
 	position := l.position
 	for isLetter(l.ch) {
@@ -132,10 +136,12 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[position:l.position]
 }
 
+// isLetter returns true if the char is an alphabet or underscore
 func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
 
+// readNumber reads and returns a number from the input
 func (l *Lexer) readNumber() string {
 	position := l.position
 	for isDigit(l.ch) {
@@ -144,10 +150,12 @@ func (l *Lexer) readNumber() string {
 	return l.input[position:l.position]
 }
 
+// isDigit returns true if the char is a digit
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
 
+// skipWhitespace skips whitespace from the input
 func (l *Lexer) skipWhitespace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
 		l.readChar()

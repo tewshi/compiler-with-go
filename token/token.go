@@ -21,6 +21,7 @@ func (t *Token) LookupIdent() {
 	}
 }
 
+// keywords is the list of keywords of the programming language
 var keywords = map[string]Type{
 	"fn":     FUNCTION,
 	"let":    LET,
