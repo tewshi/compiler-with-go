@@ -12,8 +12,8 @@ type Lexer struct {
 	ch           byte // current char under examination
 }
 
-// New creates and returns a Lexer
-func New(input string) *Lexer {
+// NewLexer creates and returns a Lexer
+func NewLexer(input string) *Lexer {
 	l := &Lexer{input: input}
 	l.readChar()
 	return l

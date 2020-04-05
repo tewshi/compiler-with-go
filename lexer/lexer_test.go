@@ -137,7 +137,7 @@ x *= 9;
 		token.Token{Type: token.EOF, Literal: ""},
 	}
 
-	l := New(input)
+	l := NewLexer(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
 		fmt.Println(tok)
