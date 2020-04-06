@@ -10,13 +10,13 @@ type Node interface {
 // Expression a single program expression
 type Expression interface {
 	Node
-	expressionNode() string
+	expressionNode()
 }
 
 // Statement a single program statement
 type Statement interface {
 	Node
-	statementNode() string
+	statementNode()
 }
 
 // Nodes list of nodes
