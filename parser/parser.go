@@ -28,6 +28,7 @@ const (
 	CALL // myFunction(X)
 )
 
+// precedence table: it associates token types with their precedence
 var precedences = map[token.Type]int{
 	token.EQ:       EQUALS,
 	token.NOTEQ:    EQUALS,
@@ -68,10 +69,12 @@ func NewParser(l *lexer.Lexer) *Parser {
 	return p
 }
 
+// registerPrefix registers a prefix parser for a token type
 func (p *Parser) registerPrefix(tokenType token.Type, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
 
+// registerInfix registers an infix parser for a token type
 func (p *Parser) registerInfix(tokenType token.Type, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
 }
@@ -115,10 +118,29 @@ func (p *Parser) expectPeek(t token.Type) bool {
 	return false
 }
 
+// curPrecedence returns the precedence associated with the token type of p.curToken
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+
+	}
+	return LOWEST
+}
+
+// peekPrecedence returns the precedence associated with the token type of p.peekToken
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+// parseIdentifier parses the current token as an identifier
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
+// parseIntegerLiteral parses the current token as an integer literal
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
@@ -131,6 +153,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return lit
 }
 
+// parseExpression parses the current token as an expression based on the registered parsers
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
@@ -141,6 +164,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return leftExp
 }
 
+// parsePrefixExpression parses the current token as a prefix expression
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{
 		Token:    p.curToken,
@@ -151,6 +175,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	return expression
 }
 
+// noPrefixParseFnError sets the error prefix expression that has no prefix
 func (p *Parser) noPrefixParseFnError(t token.Type) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
@@ -189,6 +214,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+// parseExpressionStatement parses an expression statement
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
