@@ -158,7 +158,7 @@ type PrefixExpression struct {
 
 func (pe *PrefixExpression) expressionNode() {}
 
-// TokenLiteral the literal value of the expression token
+// TokenLiteral the literal value of the prefix expression token
 func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
 
 // String string representation of a prefix expression
@@ -167,6 +167,31 @@ func (pe *PrefixExpression) String() string {
 	out.WriteString("(")
 	out.WriteString(pe.Operator)
 	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+	return out.String()
+}
+
+// InfixExpression represents an infix expression
+type InfixExpression struct {
+	Token    token.Token // The operator token, e.g. 5 + 9;
+	Left     Expression
+	Operator string
+	Right    Expression
+}
+
+func (oe *InfixExpression) expressionNode() {}
+
+// TokenLiteral the literal value of the infix expression token
+func (oe *InfixExpression) TokenLiteral() string { return oe.Token.Literal }
+
+// String string representation of a infix expression
+func (oe *InfixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(oe.Left.String())
+	out.WriteString(" " + oe.Operator + " ")
+	out.WriteString(oe.Right.String())
 	out.WriteString(")")
 	return out.String()
 }
