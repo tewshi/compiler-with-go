@@ -229,6 +229,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"false",
 			"false",
 		},
+
 		{
 			"3 > 5 == false",
 			"((3 > 5) == false)",
@@ -237,6 +238,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"3 < 5 == true",
 			"((3 < 5) == true)",
 		},
+
 		{
 			"-a * b",
 			"((-a) * b)",
@@ -245,6 +247,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"!-a",
 			"(!(-a))",
 		},
+
 		{
 			"a + b + c",
 			"((a + b) + c)",
@@ -269,6 +272,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"a + b * c + d / e - f",
 			"(((a + (b * c)) + (d / e)) - f)",
 		},
+
 		{
 			"3 + 4; -5 * 5",
 			"(3 + 4)((-5) * 5)",
@@ -288,6 +292,27 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+
+		{
+			"1 + (2 + 3) + 4",
+			"((1 + (2 + 3)) + 4)",
+		},
+		{
+			"(5 + 5) * 2",
+			"((5 + 5) * 2)",
+		},
+		{
+			"2 / (5 + 5)",
+			"(2 / (5 + 5))",
+		},
+		{
+			"-(5 + 5)",
+			"(-(5 + 5))",
+		},
+		{
+			"!(true == true)",
+			"(!(true == true))",
 		},
 	}
 	for _, tt := range tests {
