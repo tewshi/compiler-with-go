@@ -367,7 +367,7 @@ func TestIfExpression(t *testing.T) {
 		t.Errorf("exp.Alternative.Statements was not nil. got=%+v", exp.Alternative)
 	}
 
-	testIfExpression(t, exp, "x", "")
+	testIfExpression(t, exp, "(x < y)", "x", "")
 }
 
 func TestIfElseExpression(t *testing.T) {
@@ -403,7 +403,7 @@ func TestIfElseExpression(t *testing.T) {
 			len(exp.Consequence.Statements))
 	}
 
-	testIfExpression(t, exp, "x", "y")
+	testIfExpression(t, exp, "(x < y)", "x", "y")
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
@@ -550,7 +550,7 @@ func testBooleanLiteral(t *testing.T, exp ast.Expression, value bool) bool {
 	return true
 }
 
-func testIfExpression(t *testing.T, exp ast.Expression, cons string, alt string) bool {
+func testIfExpression(t *testing.T, exp ast.Expression, cond string, cons string, alt string) bool {
 	ifExp, ok := exp.(*ast.IfExpression)
 	if !ok {
 		t.Errorf("stmt.Expression is not ast.IfExpression. got=%T", exp)
@@ -559,7 +559,7 @@ func testIfExpression(t *testing.T, exp ast.Expression, cons string, alt string)
 
 	consequence, ok := ifExp.Consequence.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
-		t.Errorf("Statements[0] is not ast.ExpressionStatement. got=%T",
+		t.Errorf("Consequence.Statements[0] is not ast.ExpressionStatement. got=%T",
 			ifExp.Consequence.Statements[0])
 		return false
 	}
@@ -569,10 +569,21 @@ func testIfExpression(t *testing.T, exp ast.Expression, cons string, alt string)
 		return false
 	}
 
+	condition := ifExp.Condition
+	if condition == nil {
+		t.Errorf("Condition is not ast.Expression. got=%T", ifExp.Condition)
+		return false
+	}
+
+	if condition.String() != cond {
+		t.Errorf("exp.Condition was %+v. got=%+v", cond, condition)
+		return false
+	}
+
 	if ifExp.Alternative != nil {
 		alternative, ok := ifExp.Alternative.Statements[0].(*ast.ExpressionStatement)
 		if !ok {
-			t.Errorf("Statements[0] is not ast.ExpressionStatement. got=%T",
+			t.Errorf("Alternative.Statements[0] is not ast.ExpressionStatement. got=%T",
 				ifExp.Alternative.Statements[0])
 			return false
 		}
