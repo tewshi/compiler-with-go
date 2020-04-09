@@ -121,6 +121,26 @@ func (es *ExpressionStatement) String() string {
 	return ""
 }
 
+// BlockStatement represents a block statement in the AST
+type BlockStatement struct {
+	Token      token.Token // the { token
+	Statements []Statement
+}
+
+func (bs *BlockStatement) statementNode() {}
+
+// TokenLiteral the literal value of the block statement token
+func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
+
+// String string representation of aa block statement
+func (bs *BlockStatement) String() string {
+	var out bytes.Buffer
+	for _, s := range bs.Statements {
+		out.WriteString(s.String())
+	}
+	return out.String()
+}
+
 // Identifier represents an identifier in a statement
 type Identifier struct {
 	Token token.Token // the token.IDENT token
@@ -193,6 +213,34 @@ func (oe *InfixExpression) String() string {
 	out.WriteString(" " + oe.Operator + " ")
 	out.WriteString(oe.Right.String())
 	out.WriteString(")")
+	return out.String()
+}
+
+// IfExpression represents an if expression
+type IfExpression struct {
+	Token       token.Token // The 'if' token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ie *IfExpression) expressionNode() {}
+
+// TokenLiteral the literal value of the if expression token
+func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// String string representation of an if expression
+func (ie *IfExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("if")
+	out.WriteString(ie.Condition.String())
+
+	out.WriteString(" ")
+	out.WriteString(ie.Consequence.String())
+	if ie.Alternative != nil {
+		out.WriteString("else ")
+		out.WriteString(ie.Alternative.String())
+	}
 	return out.String()
 }
 
