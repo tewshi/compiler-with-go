@@ -356,7 +356,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
-// parseExpressionStatement parses an expression statement
+// parseFunctionParameters parses a function's parameters
 func (p *Parser) parseFunctionParameters() ast.Identifiers {
 	defer untrace(trace("parseFunctionParameters"))
 	identifiers := ast.Identifiers{}
