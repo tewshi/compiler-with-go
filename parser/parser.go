@@ -87,6 +87,9 @@ func NewParser(l *lexer.Lexer) *Parser {
 	// register conditional if...else parser
 	p.registerPrefix(token.IF, p.parseIfExpression)
 
+	// register function (fn) parser
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
+
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
 	p.nextToken()
@@ -276,6 +279,24 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	return expression
 }
 
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	literal := &ast.FunctionLiteral{Token: p.curToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	literal.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	literal.Body = p.parseBlockStatement()
+	return literal
+}
+
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}
 	block.Statements = []ast.Statement{}
@@ -333,6 +354,21 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 		p.nextToken()
 	}
 	return stmt
+}
+
+// parseExpressionStatement parses an expression statement
+func (p *Parser) parseFunctionParameters() ast.Identifiers {
+	defer untrace(trace("parseFunctionParameters"))
+	identifiers := ast.Identifiers{}
+	for !p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		if p.curTokenIs(token.COMMA) {
+			continue
+		}
+		identifier := p.parseIdentifier().(*ast.Identifier)
+		identifiers = append(identifiers, identifier)
+	}
+	return identifiers
 }
 
 // parseStatement parses a statement
