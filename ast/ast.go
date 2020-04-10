@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"monkey/token"
+	"strings"
 )
 
 // Node a tree node
@@ -147,6 +148,9 @@ type Identifier struct {
 	Value string
 }
 
+// Identifiers list of identifier struct
+type Identifiers []*Identifier
+
 func (i *Identifier) expressionNode() {}
 
 // TokenLiteral the literal value of the identifier token
@@ -257,3 +261,30 @@ func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 
 // String string representation of a boolean
 func (b *Boolean) String() string { return b.Token.Literal }
+
+// FunctionLiteral represents a function in a statement
+type FunctionLiteral struct {
+	Token      token.Token // The 'fn' token
+	Parameters Identifiers
+	Body       *BlockStatement
+}
+
+func (fl *FunctionLiteral) expressionNode() {}
+
+// TokenLiteral the literal value of the function token
+func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+
+// String string representation of a function literal
+func (fl *FunctionLiteral) String() string {
+	var out bytes.Buffer
+	params := []string{}
+	for _, p := range fl.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString(fl.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(fl.Body.String())
+	return out.String()
+}
