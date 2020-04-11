@@ -25,6 +25,13 @@ func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.ERROROBJ
+	}
+	return false
+}
+
 // Eval returns the evaluated node as an object
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
@@ -40,10 +47,25 @@ func Eval(node ast.Node) object.Object {
 		return evalIfExpression(node)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
+		// stop propagation here if we encounter an error
+		if isError(right) {
+			return right
+		}
+
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		left := Eval(node.Left)
+		// stop propagation here if we encounter an error
+		if isError(left) {
+			return left
+		}
+
 		right := Eval(node.Right)
+		// stop propagation here if we encounter an error
+		if isError(right) {
+			return right
+		}
+
 		return evalInfixExpression(node.Operator, left, right)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -51,6 +73,11 @@ func Eval(node ast.Node) object.Object {
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.ReturnStatement:
 		val := Eval(node.Value)
+		// stop propagation here if we encounter an error
+		if isError(val) {
+			return val
+		}
+
 		return &object.ReturnValue{Value: val}
 	}
 	return nil
@@ -88,6 +115,11 @@ func evalBlockStatement(block *ast.BlockStatement) object.Object {
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := Eval(ie.Condition)
+
+	// stop propagation here if we encounter an error
+	if isError(condition) {
+		return condition
+	}
 
 	if isTruthy(condition) {
 		return Eval(ie.Consequence)
