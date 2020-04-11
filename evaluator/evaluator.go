@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"monkey/ast"
 	"monkey/object"
 	"monkey/token"
@@ -20,6 +21,10 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
+func newError(format string, a ...interface{}) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, a...)}
+}
+
 // Eval returns the evaluated node as an object
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
@@ -30,7 +35,7 @@ func Eval(node ast.Node) object.Object {
 		return evalBlockStatement(node)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
-		// Expressions
+	// Expressions
 	case *ast.IfExpression:
 		return evalIfExpression(node)
 	case *ast.PrefixExpression:
@@ -55,8 +60,12 @@ func evalProgram(program *ast.Program) object.Object {
 	var result object.Object
 	for _, statement := range program.Statements {
 		result = Eval(statement)
-		if returnValue, ok := result.(*object.ReturnValue); ok {
-			return returnValue.Value
+
+		switch result := result.(type) {
+		case *object.ReturnValue:
+			return result.Value
+		case *object.Error:
+			return result
 		}
 	}
 	return result
@@ -66,8 +75,12 @@ func evalBlockStatement(block *ast.BlockStatement) object.Object {
 	var result object.Object
 	for _, statement := range block.Statements {
 		result = Eval(statement)
-		if result != nil && result.Type() == object.RETURNVALUEOBJ {
-			return result
+
+		if result != nil {
+			rt := result.Type()
+			if rt == object.RETURNVALUEOBJ || rt == object.ERROROBJ {
+				return result
+			}
 		}
 	}
 	return result
@@ -103,25 +116,26 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "!":
 		return evalBangOperatorExpression(right)
 	case "-":
-		return evalMinusOperatorExpression(right)
+		return evalMinusPrefixOperatorExpression(right)
 	default:
-		return NULL
+		return newError("unknown operator: %s%s", operator, right.Type())
 	}
 }
 
 func evalInfixExpression(operator string, left object.Object, right object.Object) object.Object {
 	switch {
-	case left.Type() == object.INTEGEROBJ || right.Type() == object.INTEGEROBJ:
+	case left.Type() == object.INTEGEROBJ && right.Type() == object.INTEGEROBJ:
 		return evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.BOOLEANOBJ || right.Type() == object.BOOLEANOBJ:
+	case left.Type() == object.BOOLEANOBJ && right.Type() == object.BOOLEANOBJ:
 		return evalBooleanInfixExpression(operator, left, right)
+	case left.Type() != right.Type():
+		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	case operator == token.EQ:
 		return nativeBoolToBooleanObject(left == right)
 	case operator == token.NOTEQ:
 		return nativeBoolToBooleanObject(left != right)
 	default:
-		return NULL
-
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -150,7 +164,7 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	case token.NOTEQ:
 		return evalNotEqualToOperatorIntegerExpression(left, right)
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -169,7 +183,7 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 
 func evalPlusOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s + %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -180,7 +194,7 @@ func evalPlusOperatorIntegerExpression(left object.Object, right object.Object) 
 
 func evalSubtractOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s - %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -191,7 +205,7 @@ func evalSubtractOperatorIntegerExpression(left object.Object, right object.Obje
 
 func evalMultiplyOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s * %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -202,7 +216,7 @@ func evalMultiplyOperatorIntegerExpression(left object.Object, right object.Obje
 
 func evalDivideOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s / %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -217,7 +231,7 @@ func evalDivideOperatorIntegerExpression(left object.Object, right object.Object
 
 func evalLessThanOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s < %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -228,7 +242,7 @@ func evalLessThanOperatorIntegerExpression(left object.Object, right object.Obje
 
 func evalLessThanEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s <= %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -239,7 +253,7 @@ func evalLessThanEqualToOperatorIntegerExpression(left object.Object, right obje
 
 func evalGreaterThanOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s > %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -250,7 +264,7 @@ func evalGreaterThanOperatorIntegerExpression(left object.Object, right object.O
 
 func evalGreaterThanEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s >= %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -261,7 +275,7 @@ func evalGreaterThanEqualToOperatorIntegerExpression(left object.Object, right o
 
 func evalEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s == %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -272,7 +286,7 @@ func evalEqualToOperatorIntegerExpression(left object.Object, right object.Objec
 
 func evalNotEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("type mismatch: %s != %s", left.Type(), right.Type())
 	}
 
 	lvalue := left.(*object.Integer).Value
@@ -281,9 +295,9 @@ func evalNotEqualToOperatorIntegerExpression(left object.Object, right object.Ob
 	return nativeBoolToBooleanObject(lvalue != rvalue)
 }
 
-func evalMinusOperatorExpression(right object.Object) object.Object {
+func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGEROBJ {
-		return NULL
+		return newError("unknown operator: -%s", right.Type())
 	}
 	value := right.(*object.Integer).Value
 
@@ -299,7 +313,7 @@ func evalBooleanInfixExpression(operator string, left object.Object, right objec
 	case token.EQ:
 		return nativeBoolToBooleanObject(lvalue == rvalue)
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
