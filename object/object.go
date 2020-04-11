@@ -9,8 +9,10 @@ const (
 	BOOLEANOBJ = "BOOLEAN"
 	// NULLOBJ represents an nil object
 	NULLOBJ = "NULL"
-	// NULLOBJ represents an nil object
+	// NANOBJ represents an nil object
 	NANOBJ = "NAN"
+	// RETURNVALUEOBJ represents a return object
+	RETURNVALUEOBJ = "RETURN_VALUE"
 )
 
 // Type represents the type of an object
@@ -61,3 +63,14 @@ func (i *Nan) Type() Type { return NANOBJ }
 
 // Inspect inspector of the Nan value
 func (i *Nan) Inspect() string { return "NAN" }
+
+// ReturnValue represents a return value
+type ReturnValue struct {
+	Value Object
+}
+
+// Type returns the object type of this value
+func (rv *ReturnValue) Type() Type { return RETURNVALUEOBJ }
+
+// Inspect inspector of the Nan value
+func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
