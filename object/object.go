@@ -9,6 +9,8 @@ const (
 	BOOLEANOBJ = "BOOLEAN"
 	// NULLOBJ represents an nil object
 	NULLOBJ = "NULL"
+	// NULLOBJ represents an nil object
+	NANOBJ = "NAN"
 )
 
 // Type represents the type of an object
@@ -50,3 +52,12 @@ func (i *Null) Type() Type { return NULLOBJ }
 
 // Inspect inspector of the Null value
 func (i *Null) Inspect() string { return "null" }
+
+// Nan represents not-a-number
+type Nan struct{}
+
+// Type returns the object type of this value
+func (i *Nan) Type() Type { return NANOBJ }
+
+// Inspect inspector of the Nan value
+func (i *Nan) Inspect() string { return "NAN" }
