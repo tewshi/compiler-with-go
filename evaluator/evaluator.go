@@ -64,15 +64,45 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 }
 
 func evalInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	switch {
+	case left.Type() == object.INTEGEROBJ || right.Type() == object.INTEGEROBJ:
+		return evalIntegerInfixExpression(operator, left, right)
+	case left.Type() == object.BOOLEANOBJ || right.Type() == object.BOOLEANOBJ:
+		return evalBooleanInfixExpression(operator, left, right)
+	case operator == token.EQ:
+		return nativeBoolToBooleanObject(left == right)
+	case operator == token.NOTEQ:
+		return nativeBoolToBooleanObject(left != right)
+	default:
+		return NULL
+
+	}
+}
+
+func evalIntegerInfixExpression(operator string, left object.Object, right object.Object) object.Object {
 	switch operator {
+	// + - * /
 	case token.PLUS:
-		return evalPlusOperatorExpression(left, right)
+		return evalPlusOperatorIntegerExpression(left, right)
 	case token.MINUS:
-		return evalSubtractOperatorExpression(left, right)
+		return evalSubtractOperatorIntegerExpression(left, right)
 	case token.ASTERISK:
-		return evalMultiplyOperatorExpression(left, right)
+		return evalMultiplyOperatorIntegerExpression(left, right)
 	case token.SLASH:
-		return evalDivideOperatorExpression(left, right)
+		return evalDivideOperatorIntegerExpression(left, right)
+	// < <= > >= == !=
+	case token.LT:
+		return evalLessThanOperatorIntegerExpression(left, right)
+	case token.LTEQ:
+		return evalLessThanEqualToOperatorIntegerExpression(left, right)
+	case token.GT:
+		return evalGreaterThanOperatorIntegerExpression(left, right)
+	case token.GTEQ:
+		return evalGreaterThanEqualToOperatorIntegerExpression(left, right)
+	case token.EQ:
+		return evalEqualToOperatorIntegerExpression(left, right)
+	case token.NOTEQ:
+		return evalNotEqualToOperatorIntegerExpression(left, right)
 	default:
 		return NULL
 	}
@@ -91,7 +121,7 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 	}
 }
 
-func evalPlusOperatorExpression(left object.Object, right object.Object) object.Object {
+func evalPlusOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
 		return NULL
 	}
@@ -102,7 +132,7 @@ func evalPlusOperatorExpression(left object.Object, right object.Object) object.
 	return &object.Integer{Value: lvalue + rvalue}
 }
 
-func evalSubtractOperatorExpression(left object.Object, right object.Object) object.Object {
+func evalSubtractOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
 		return NULL
 	}
@@ -113,7 +143,7 @@ func evalSubtractOperatorExpression(left object.Object, right object.Object) obj
 	return &object.Integer{Value: lvalue - rvalue}
 }
 
-func evalMultiplyOperatorExpression(left object.Object, right object.Object) object.Object {
+func evalMultiplyOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
 		return NULL
 	}
@@ -124,7 +154,7 @@ func evalMultiplyOperatorExpression(left object.Object, right object.Object) obj
 	return &object.Integer{Value: lvalue * rvalue}
 }
 
-func evalDivideOperatorExpression(left object.Object, right object.Object) object.Object {
+func evalDivideOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
 	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
 		return NULL
 	}
@@ -139,6 +169,72 @@ func evalDivideOperatorExpression(left object.Object, right object.Object) objec
 	return &object.Integer{Value: lvalue / rvalue}
 }
 
+func evalLessThanOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return NULL
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	return nativeBoolToBooleanObject(lvalue < rvalue)
+}
+
+func evalLessThanEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return NULL
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	return nativeBoolToBooleanObject(lvalue <= rvalue)
+}
+
+func evalGreaterThanOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return NULL
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	return nativeBoolToBooleanObject(lvalue > rvalue)
+}
+
+func evalGreaterThanEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return NULL
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	return nativeBoolToBooleanObject(lvalue >= rvalue)
+}
+
+func evalEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return NULL
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	return nativeBoolToBooleanObject(lvalue == rvalue)
+}
+
+func evalNotEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return NULL
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	return nativeBoolToBooleanObject(lvalue != rvalue)
+}
+
 func evalMinusOperatorExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGEROBJ {
 		return NULL
@@ -146,6 +242,19 @@ func evalMinusOperatorExpression(right object.Object) object.Object {
 	value := right.(*object.Integer).Value
 
 	return &object.Integer{Value: -value}
+}
+
+func evalBooleanInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	lvalue := left.(*object.Boolean).Value
+	rvalue := right.(*object.Boolean).Value
+	switch operator {
+	case token.NOTEQ:
+		return nativeBoolToBooleanObject(lvalue != rvalue)
+	case token.EQ:
+		return nativeBoolToBooleanObject(lvalue == rvalue)
+	default:
+		return NULL
+	}
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
