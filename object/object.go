@@ -13,6 +13,8 @@ const (
 	NANOBJ = "NAN"
 	// RETURNVALUEOBJ represents a return object
 	RETURNVALUEOBJ = "RETURN_VALUE"
+	// ERROROBJ represents an error object
+	ERROROBJ = "ERROR"
 )
 
 // Type represents the type of an object
@@ -32,7 +34,7 @@ type Integer struct {
 // Type returns the object type of this value
 func (i *Integer) Type() Type { return INTEGEROBJ }
 
-// Inspect inspector of the integer value
+// Inspect returns a readable string of the integer value
 func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 
 // Boolean the bool type
@@ -43,7 +45,7 @@ type Boolean struct {
 // Type returns the object type of this value
 func (i *Boolean) Type() Type { return BOOLEANOBJ }
 
-// Inspect inspector of the boolean value
+// Inspect returns a readable string of the boolean value
 func (i *Boolean) Inspect() string { return fmt.Sprintf("%t", i.Value) }
 
 // Null the nil type
@@ -52,7 +54,7 @@ type Null struct{}
 // Type returns the object type of this value
 func (i *Null) Type() Type { return NULLOBJ }
 
-// Inspect inspector of the Null value
+// Inspect returns a readable string of the Null value
 func (i *Null) Inspect() string { return "null" }
 
 // Nan represents not-a-number
@@ -61,7 +63,7 @@ type Nan struct{}
 // Type returns the object type of this value
 func (i *Nan) Type() Type { return NANOBJ }
 
-// Inspect inspector of the Nan value
+// Inspect returns a readable string of the Nan value
 func (i *Nan) Inspect() string { return "NAN" }
 
 // ReturnValue represents a return value
@@ -72,5 +74,16 @@ type ReturnValue struct {
 // Type returns the object type of this value
 func (rv *ReturnValue) Type() Type { return RETURNVALUEOBJ }
 
-// Inspect inspector of the Nan value
+// Inspect returns a readable string of the return value
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+// Error represents an error in our program
+type Error struct {
+	Message string
+}
+
+// Type returns the object type of this value
+func (e *Error) Type() Type { return ERROROBJ }
+
+// Inspect returns a readable string of the error
+func (e *Error) Inspect() string { return "ERROR: " + e.Message }
