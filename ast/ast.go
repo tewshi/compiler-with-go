@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// TAB the tab character
+const TAB = "  "
+
 // Node a tree node
 type Node interface {
 	TokenLiteral() string
@@ -236,14 +239,16 @@ func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
 // String string representation of an if expression
 func (ie *IfExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("if")
+	out.WriteString("if (")
 	out.WriteString(ie.Condition.String())
 
-	out.WriteString(" ")
-	out.WriteString(ie.Consequence.String())
+	out.WriteString(") {\n")
+	out.WriteString(TAB + ie.Consequence.String())
+	out.WriteString("\n}")
 	if ie.Alternative != nil {
-		out.WriteString("else ")
-		out.WriteString(ie.Alternative.String())
+		out.WriteString(" else {\n")
+		out.WriteString(TAB + ie.Alternative.String())
+		out.WriteString("\n}")
 	}
 	return out.String()
 }
@@ -279,10 +284,10 @@ func (fl *FunctionLiteral) String() string {
 	var out bytes.Buffer
 	params := []string{}
 	for _, p := range fl.Parameters {
-		params = append(params, p.String())
+		params = append(params, TAB+p.String())
 	}
 	out.WriteString(fl.TokenLiteral())
-	out.WriteString("(")
+	out.WriteString(" (")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") ")
 	out.WriteString(fl.Body.String())
