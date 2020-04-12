@@ -33,6 +33,9 @@ type Object interface {
 	Inspect() string
 }
 
+// Objects list of objects
+type Objects []Object
+
 // Integer the int type
 type Integer struct {
 	Value int64
@@ -109,14 +112,20 @@ func (f *Function) Type() Type { return FUNCTIONOBJ }
 func (f *Function) Inspect() string {
 	var out bytes.Buffer
 	params := []string{}
+	body := []string{}
 	for _, p := range f.Parameters {
 		params = append(params, p.String())
 	}
+	for _, s := range f.Body.Statements {
+		body = append(body, ast.TAB+s.String())
+	}
 	out.WriteString("fn")
-	out.WriteString("(")
+	out.WriteString(" (")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") {\n")
-	out.WriteString(f.Body.String())
-	out.WriteString("\n}")
+	for _, s := range f.Body.Statements {
+		out.WriteString(ast.TAB + s.String() + "\n")
+	}
+	out.WriteString("}")
 	return out.String()
 }
