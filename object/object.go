@@ -112,12 +112,8 @@ func (f *Function) Type() Type { return FUNCTIONOBJ }
 func (f *Function) Inspect() string {
 	var out bytes.Buffer
 	params := []string{}
-	body := []string{}
 	for _, p := range f.Parameters {
 		params = append(params, p.String())
-	}
-	for _, s := range f.Body.Statements {
-		body = append(body, ast.TAB+s.String())
 	}
 	out.WriteString("fn")
 	out.WriteString(" (")
@@ -126,6 +122,6 @@ func (f *Function) Inspect() string {
 	for _, s := range f.Body.Statements {
 		out.WriteString(ast.TAB + s.String() + "\n")
 	}
-	out.WriteString("}")
+	out.WriteString("};")
 	return out.String()
 }

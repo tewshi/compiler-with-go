@@ -242,13 +242,13 @@ func (ie *IfExpression) String() string {
 	out.WriteString("if (")
 	out.WriteString(ie.Condition.String())
 
-	out.WriteString(") {\n")
+	out.WriteString(") {")
 	out.WriteString(TAB + ie.Consequence.String())
-	out.WriteString("\n}")
+	out.WriteString("; }")
 	if ie.Alternative != nil {
-		out.WriteString(" else {\n")
-		out.WriteString(TAB + ie.Alternative.String())
-		out.WriteString("\n}")
+		out.WriteString(" else {")
+		out.WriteString(ie.Alternative.String())
+		out.WriteString(";}")
 	}
 	return out.String()
 }
@@ -284,13 +284,16 @@ func (fl *FunctionLiteral) String() string {
 	var out bytes.Buffer
 	params := []string{}
 	for _, p := range fl.Parameters {
-		params = append(params, TAB+p.String())
+		params = append(params, p.String())
 	}
 	out.WriteString(fl.TokenLiteral())
 	out.WriteString(" (")
 	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(") ")
-	out.WriteString(fl.Body.String())
+	out.WriteString(") { ")
+	for _, s := range fl.Body.Statements {
+		out.WriteString(s.String() + "; ")
+	}
+	out.WriteString("};")
 	return out.String()
 }
 
