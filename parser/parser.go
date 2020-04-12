@@ -32,17 +32,21 @@ const (
 
 // precedence table: it associates token types with their precedence
 var precedences = map[token.Type]int{
-	token.EQ:       EQUALS,
-	token.NOTEQ:    EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.LTEQ:     LESSGREATEREQUALS,
-	token.GTEQ:     LESSGREATEREQUALS,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	token.LPAREN:   CALL,
+	token.PLUSEQ:     EQUALS,
+	token.MINUSEQ:    EQUALS,
+	token.SLASHEQ:    EQUALS,
+	token.ASTERISKEQ: EQUALS,
+	token.EQ:         EQUALS,
+	token.NOTEQ:      EQUALS,
+	token.LT:         LESSGREATER,
+	token.GT:         LESSGREATER,
+	token.LTEQ:       LESSGREATEREQUALS,
+	token.GTEQ:       LESSGREATEREQUALS,
+	token.PLUS:       SUM,
+	token.MINUS:      SUM,
+	token.SLASH:      PRODUCT,
+	token.ASTERISK:   PRODUCT,
+	token.LPAREN:     CALL,
 }
 
 type (
@@ -77,16 +81,20 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
-	p.registerInfix(token.EQ, p.parseInfixExpression)
+
 	p.registerInfix(token.PLUSEQ, p.parseInfixExpression)
 	p.registerInfix(token.MINUSEQ, p.parseInfixExpression)
 	p.registerInfix(token.SLASHEQ, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISKEQ, p.parseInfixExpression)
+
+	p.registerInfix(token.EQ, p.parseInfixExpression)
 	p.registerInfix(token.NOTEQ, p.parseInfixExpression)
+
 	p.registerInfix(token.LTEQ, p.parseInfixExpression)
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
+
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 
 	// register boolean parser
