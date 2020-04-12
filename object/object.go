@@ -1,6 +1,11 @@
 package object
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+	"monkey/ast"
+	"strings"
+)
 
 const (
 	// INTEGEROBJ represents an integer object
@@ -15,6 +20,8 @@ const (
 	RETURNVALUEOBJ = "RETURN_VALUE"
 	// ERROROBJ represents an error object
 	ERROROBJ = "ERROR"
+	// FUNCTIONOBJ represents a function object
+	FUNCTIONOBJ = "FUNCTION"
 )
 
 // Type represents the type of an object
@@ -87,3 +94,29 @@ func (e *Error) Type() Type { return ERROROBJ }
 
 // Inspect returns a readable string of the error
 func (e *Error) Inspect() string { return "ERROR: " + e.Message }
+
+// Function represents a function in our program
+type Function struct {
+	Parameters ast.Identifiers
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+// Type returns the object type of this value
+func (f *Function) Type() Type { return FUNCTIONOBJ }
+
+// Inspect returns a readable string of the function
+func (f *Function) Inspect() string {
+	var out bytes.Buffer
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(f.Body.String())
+	out.WriteString("\n}")
+	return out.String()
+}
