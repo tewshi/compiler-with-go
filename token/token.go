@@ -47,28 +47,33 @@ const (
 
 	// ASSIGN for assignment operator
 	ASSIGN = "="
+
 	// PLUS for plus operator
 	PLUS = "+"
 	// MINUS for minus operator
 	MINUS = "-"
-	// BANG for bang operator
-	BANG = "!"
 	// ASTERISK for multiplication operator
 	ASTERISK = "*"
 	// SLASH for division operator
 	SLASH = "/"
-	// LT for less than operator
-	LT = "<"
-	// GT for greater than operator
-	GT = ">"
+
+	// BANG for bang (not) operator
+	BANG = "!"
+
 	// EQ for greater equal to operator
 	EQ = "=="
 	// NOTEQ for greater not equal to operator
 	NOTEQ = "!="
+
+	// LT for less than operator
+	LT = "<"
+	// GT for greater than operator
+	GT = ">"
 	// LTEQ for greater less than or equal to operator
 	LTEQ = "<="
 	// GTEQ for greater than or equal to operator
 	GTEQ = ">="
+
 	// PLUSEQ for plus equal to operator
 	PLUSEQ = "+="
 	// MINUSEQ for minus equal to operator
