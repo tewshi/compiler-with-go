@@ -5,6 +5,7 @@ import (
 	"monkey/ast"
 	"monkey/object"
 	"monkey/token"
+	"monkey/utils"
 )
 
 var (
@@ -87,6 +88,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalPrefixExpression(node.Operator, right)
 
 	case *ast.InfixExpression:
+		// TODO: check if the left is an identifier for cases of x += 1 or s += "world"
 		left := Eval(node.Left, env)
 		// stop propagation here if we encounter an error
 		if isError(left) {
@@ -99,7 +101,26 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return right
 		}
 
-		return evalInfixExpression(node.Operator, left, right)
+		val := evalInfixExpression(node.Operator, left, right)
+
+		modOps := []interface{}{
+			token.PLUSEQ,
+			token.MINUSEQ,
+			token.SLASHEQ,
+			token.ASTERISKEQ,
+		}
+
+		if utils.InArray(node.Operator, modOps) {
+			if identifier, ok := node.Left.(*ast.Identifier); ok {
+				if envVal, okEnv := evalIdentifier(identifier, env).(*object.Integer); !okEnv {
+					return envVal
+				}
+
+				env.Set(identifier.Value, val)
+			}
+		}
+
+		return val
 
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -273,11 +294,20 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 		return evalGreaterThanOperatorIntegerExpression(left, right)
 	case token.GTEQ:
 		return evalGreaterThanEqualToOperatorIntegerExpression(left, right)
+
 	case token.EQ:
 		return evalEqualToOperatorIntegerExpression(left, right)
 	case token.NOTEQ:
 		return evalNotEqualToOperatorIntegerExpression(left, right)
-	// TODO: add += -= /= *=
+
+	case token.PLUSEQ:
+		return evalPlusOperatorIntegerExpression(left, right)
+	case token.MINUSEQ:
+		return evalSubtractOperatorIntegerExpression(left, right)
+	case token.ASTERISKEQ:
+		return evalMultiplyOperatorIntegerExpression(left, right)
+	case token.SLASHEQ:
+		return evalDivideOperatorIntegerExpression(left, right)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
