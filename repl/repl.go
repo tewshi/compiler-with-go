@@ -6,6 +6,7 @@ import (
 	"io"
 	"monkey/evaluator"
 	"monkey/lexer"
+	"monkey/object"
 	"monkey/parser"
 )
 
@@ -44,6 +45,10 @@ const MONKEYFROWN = `         __,__
 func Start(in io.Reader, out io.Writer) {
 	// create the scanner
 	scanner := bufio.NewScanner(in)
+
+	// create the environment for storage
+	env := object.NewEnvironment()
+
 	for {
 		// print prompt: >>
 		fmt.Printf(PROMPT)
@@ -70,7 +75,7 @@ func Start(in io.Reader, out io.Writer) {
 		}
 
 		// print our evaluated program
-		evaluated := evaluator.Eval(program)
+		evaluated := evaluator.Eval(program, env)
 		if evaluated != nil {
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
