@@ -156,6 +156,17 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return &object.Array{Elements: elements}
 
+	case *ast.IndexExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+		index := Eval(node.Index, env)
+		if isError(index) {
+			return index
+		}
+		return evalIndexExpression(left, index)
+
 	case *ast.ReturnStatement:
 		val := Eval(node.Value, env)
 		// stop propagation here if we encounter an error
@@ -210,6 +221,33 @@ func evalExpressions(exps ast.Expressions, env *object.Environment) object.Objec
 		result = append(result, evaluated)
 	}
 	return result
+}
+
+func evalIndexExpression(left object.Object, index object.Object) object.Object {
+	var l object.Object = left
+	var idx object.Object = index
+	if left.Type() == object.IDENTIFIEROBJ {
+		l = left.(*object.Identifier).Value
+	}
+	if index.Type() == object.IDENTIFIEROBJ {
+		idx = index.(*object.Identifier).Value
+	}
+	switch {
+	case l.Type() == object.ARRAYOBJ && idx.Type() == object.INTEGEROBJ:
+		return evalArrayIndexExpression(l, idx)
+	default:
+		return newError("index operator not supported: %s", l.Type())
+	}
+}
+
+func evalArrayIndexExpression(array, index object.Object) object.Object {
+	arrayObject := array.(*object.Array)
+	idx := index.(*object.Integer).Value
+	max := int64(len(arrayObject.Elements) - 1)
+	if idx < 0 || idx > max {
+		return newError("array index out of bounds[0, %d]: %d", max, idx)
+	}
+	return arrayObject.Elements[idx]
 }
 
 func applyFunction(fn object.Object, args object.Objects) object.Object {
