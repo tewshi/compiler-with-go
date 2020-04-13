@@ -71,8 +71,12 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 
 		args := evalExpressions(node.Arguments, env)
-		if len(args) == 1 && isError(args[0]) {
-			return args[0]
+		if len(args) >= 1 {
+			for _, arg := range args {
+				if isError(arg) {
+					return arg
+				}
+			}
 		}
 
 		return applyFunction(function, args)
@@ -139,6 +143,18 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
+
+	case *ast.ArrayLiteral:
+		elements := evalExpressions(node.Elements, env)
+
+		if len(elements) >= 1 {
+			for _, element := range elements {
+				if isError(element) {
+					return element
+				}
+			}
+		}
+		return &object.Array{Elements: elements}
 
 	case *ast.ReturnStatement:
 		val := Eval(node.Value, env)
