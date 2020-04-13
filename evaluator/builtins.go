@@ -5,19 +5,126 @@ import (
 )
 
 var builtins = map[string]*object.Builtin{
-	"len": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1",
-					len(args))
-			}
-			switch arg := args[0].(type) {
-			case *object.String:
-				return &object.Integer{Value: int64(len(arg.Value))}
-			default:
-				return newError("argument to `len` not supported, got %s, want %s",
-					args[0].Type(), object.STRINGOBJ)
-			}
-		},
-	},
+	"len":   &object.Builtin{Fn: _len},
+	"first": &object.Builtin{Fn: _first},
+	"last":  &object.Builtin{Fn: _last},
+	"rest":  &object.Builtin{Fn: _rest},
+	"push":  &object.Builtin{Fn: _push},
 }
+
+func _len(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("wrong number of arguments. got=%d, want=1",
+			len(args))
+	}
+	var arg object.Object = args[0]
+
+	if arg.Type() == object.IDENTIFIEROBJ {
+		arg = arg.(*object.Identifier).Value
+	}
+
+	switch arg.(type) {
+	case *object.String:
+		return &object.Integer{Value: int64(len(arg.(*object.String).Value))}
+	case *object.Array:
+		return &object.Integer{Value: int64(len(arg.(*object.Array).Elements))}
+	default:
+		return newError("argument to `len` not supported, got %s, want %s or %s",
+			args[0].Type(), object.STRINGOBJ, object.ARRAYOBJ)
+	}
+}
+
+func _first(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("wrong number of arguments. got=%d, want=1",
+			len(args))
+	}
+	var arg object.Object = args[0]
+	if arg.Type() == object.IDENTIFIEROBJ {
+		arg = arg.(*object.Identifier).Value
+	}
+
+	if arg.Type() != object.ARRAYOBJ {
+		return newError("argument to `first` must be ARRAY, got %s",
+			arg.Type())
+	}
+
+	elements := arg.(*object.Array).Elements
+	if len(elements) > 0 {
+		return elements[0]
+	}
+	return NULL
+}
+
+func _last(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("wrong number of arguments. got=%d, want=1",
+			len(args))
+	}
+	var arg object.Object = args[0]
+	if arg.Type() == object.IDENTIFIEROBJ {
+		arg = arg.(*object.Identifier).Value
+	}
+
+	if arg.Type() != object.ARRAYOBJ {
+		return newError("argument to `last` must be ARRAY, got %s",
+			arg.Type())
+	}
+
+	elements := arg.(*object.Array).Elements
+	if length := len(elements); length > 0 {
+		return elements[length-1]
+	}
+	return NULL
+}
+
+func _rest(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("wrong number of arguments. got=%d, want=1",
+			len(args))
+	}
+	var arg object.Object = args[0]
+	if arg.Type() == object.IDENTIFIEROBJ {
+		arg = arg.(*object.Identifier).Value
+	}
+
+	if arg.Type() != object.ARRAYOBJ {
+		return newError("argument to `last` must be ARRAY, got %s",
+			arg.Type())
+	}
+
+	elements := arg.(*object.Array).Elements
+	if length := len(elements); length > 0 {
+		return &object.Array{Elements: elements[1:length]}
+	}
+	return NULL
+}
+
+func _push(args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return newError("wrong number of arguments. got=%d, want=2",
+			len(args))
+	}
+	var arg object.Object = args[0]
+	var val object.Object = args[1]
+	if arg.Type() == object.IDENTIFIEROBJ {
+		arg = arg.(*object.Identifier).Value
+	}
+	if val.Type() == object.IDENTIFIEROBJ {
+		val = val.(*object.Identifier).Value
+	}
+
+	if arg.Type() != object.ARRAYOBJ {
+		return newError("first argument to `push` must be ARRAY, got %s",
+			arg.Type())
+	}
+
+	elements := arg.(*object.Array).Elements
+	return &object.Array{Elements: append(elements, val)}
+}
+
+// let map = fn(arr, f) { let iter = fn(arr, accumulated) { if (len(arr) == 0) { accumulated } else { iter(rest(arr), push(accumulated, f(first(arr)))); } }; iter(arr, []); };
+
+// let reduce = fn(arr, initial, f) {let iter = fn(arr, result) {if (len(arr) == 0) {result} else {iter(rest(arr), f(result, first(arr)));}};iter(arr, initial);};
+
+// let sum = fn(arr) {reduce(arr, 0, fn(initial, el) { initial + el });};
