@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"monkey/token"
+	"strings"
 )
 
 // Lexer the lexer type
@@ -116,6 +117,9 @@ func (l *Lexer) NextToken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
@@ -135,6 +139,32 @@ func (l *Lexer) NextToken() token.Token {
 // newToken creates a token given its type and the character
 func newToken(tokenType token.Type, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
+}
+
+func (l *Lexer) readString() string {
+	position := l.position + 1
+
+	for {
+		l.readChar()
+		if (l.ch == '"' && l.input[l.position-1] != '\\') || l.ch == 0 {
+			break
+		}
+	}
+	replacements := []struct {
+		Find    string
+		Replace string
+	}{
+		{Find: "\\\"", Replace: "\""},
+		{Find: "\\n", Replace: "\n"},
+		{Find: "\\t", Replace: "\t"},
+	}
+	var value string = l.input[position:l.position]
+
+	for _, replacement := range replacements {
+		value = strings.ReplaceAll(value, replacement.Find, replacement.Replace)
+	}
+
+	return value
 }
 
 // readIdentifier reads and returns an identifier from the input
