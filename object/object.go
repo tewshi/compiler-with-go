@@ -10,6 +10,8 @@ import (
 const (
 	// INTEGEROBJ represents an integer object
 	INTEGEROBJ = "INTEGER"
+	// STRINGOBJ represents an string object
+	STRINGOBJ = "STRING"
 	// IDENTIFIEROBJ represents an identifier object
 	IDENTIFIEROBJ = "IDENTIFIER"
 	// BOOLEANOBJ represents an boolean object
@@ -48,6 +50,17 @@ func (i *Integer) Type() Type { return INTEGEROBJ }
 
 // Inspect returns a readable string of the integer value
 func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
+
+// String the int type
+type String struct {
+	Value string
+}
+
+// Type returns the object type of this value
+func (s *String) Type() Type { return STRINGOBJ }
+
+// Inspect returns a readable string of the String value
+func (s *String) Inspect() string { return s.Value }
 
 // Identifier the int type
 type Identifier struct {
