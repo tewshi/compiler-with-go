@@ -12,10 +12,10 @@ const (
 	INTEGEROBJ = "INTEGER"
 	// STRINGOBJ represents an string object
 	STRINGOBJ = "STRING"
-	// IDENTIFIEROBJ represents an identifier object
-	IDENTIFIEROBJ = "IDENTIFIER"
 	// BOOLEANOBJ represents an boolean object
 	BOOLEANOBJ = "BOOLEAN"
+	// ARRAYOBJ represents an array object
+	ARRAYOBJ = "ARRAY"
 	// NULLOBJ represents an nil object
 	NULLOBJ = "NULL"
 	// NANOBJ represents an nil object
@@ -24,6 +24,8 @@ const (
 	RETURNVALUEOBJ = "RETURN_VALUE"
 	// ERROROBJ represents an error object
 	ERROROBJ = "ERROR"
+	// IDENTIFIEROBJ represents an identifier object
+	IDENTIFIEROBJ = "IDENTIFIER"
 	// FUNCTIONOBJ represents a function object
 	FUNCTIONOBJ = "FUNCTION"
 	// BUILTINOBJ represents a built-in function object
@@ -67,18 +69,6 @@ func (s *String) Type() Type { return STRINGOBJ }
 // Inspect returns a readable string of the String value
 func (s *String) Inspect() string { return s.Value }
 
-// Identifier the int type
-type Identifier struct {
-	Name  string
-	Value Object
-}
-
-// Type returns the object type of this value
-func (i *Identifier) Type() Type { return IDENTIFIEROBJ }
-
-// Inspect returns a readable string of the Identifier value
-func (i *Identifier) Inspect() string { return i.Value.Inspect() }
-
 // Boolean the bool type
 type Boolean struct {
 	Value bool
@@ -89,6 +79,27 @@ func (i *Boolean) Type() Type { return BOOLEANOBJ }
 
 // Inspect returns a readable string of the boolean value
 func (i *Boolean) Inspect() string { return fmt.Sprintf("%t", i.Value) }
+
+// Array the array data structure
+type Array struct {
+	Elements Objects
+}
+
+// Type returns the object type of this value
+func (ao *Array) Type() Type { return ARRAYOBJ }
+
+// Inspect returns a readable string of the array value
+func (ao *Array) Inspect() string {
+	var out bytes.Buffer
+	elements := []string{}
+	for _, e := range ao.Elements {
+		elements = append(elements, e.Inspect())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
 
 // Null the nil type
 type Null struct{}
@@ -129,6 +140,18 @@ func (e *Error) Type() Type { return ERROROBJ }
 
 // Inspect returns a readable string of the error
 func (e *Error) Inspect() string { return "ERROR: " + e.Message }
+
+// Identifier the int type
+type Identifier struct {
+	Name  string
+	Value Object
+}
+
+// Type returns the object type of this value
+func (i *Identifier) Type() Type { return IDENTIFIEROBJ }
+
+// Inspect returns a readable string of the Identifier value
+func (i *Identifier) Inspect() string { return i.Value.Inspect() }
 
 // Function represents a function in our program
 type Function struct {
