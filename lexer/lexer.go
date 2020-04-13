@@ -114,6 +114,10 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
+	case '[':
+		tok = newToken(token.LBRACKET, l.ch)
+	case ']':
+		tok = newToken(token.RBRACKET, l.ch)
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -157,6 +161,7 @@ func (l *Lexer) readString() string {
 		{Find: "\\\"", Replace: "\""},
 		{Find: "\\n", Replace: "\n"},
 		{Find: "\\t", Replace: "\t"},
+		{Find: "\\r", Replace: "\r"},
 	}
 	var value string = l.input[position:l.position]
 
