@@ -43,7 +43,9 @@ const (
 	// INT for integers
 	INT = "INT" // 1343456
 	// BOOL for booleans
-	BOOL = "BOOL" // let x: bool = false
+	BOOL = "BOOL" // let x = false
+	// STRING for strings
+	STRING = "STRING" // let x = "hello, world"
 
 	// ASSIGN for assignment operator
 	ASSIGN = "="

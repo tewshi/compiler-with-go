@@ -267,6 +267,20 @@ func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 // String string representation of a boolean
 func (b *Boolean) String() string { return b.Token.Literal }
 
+// StringLiteral represents a string in a statement
+type StringLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (sl *StringLiteral) expressionNode() {}
+
+// TokenLiteral the literal value of the string token
+func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
+
+// String string representation of a string
+func (sl *StringLiteral) String() string { return sl.Token.Literal }
+
 // FunctionLiteral represents a function in a statement
 type FunctionLiteral struct {
 	Token      token.Token // The 'fn' token
