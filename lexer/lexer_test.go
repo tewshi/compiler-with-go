@@ -30,6 +30,7 @@ func TestNextToken(t *testing.T) {
 	x += 9;
 	x /= 9;
 	x *= 9;
+	[1, 2];
 	`
 	tests := []struct {
 		expectedType    token.Type
@@ -135,6 +136,13 @@ func TestNextToken(t *testing.T) {
 
 		{token.ASTERISKEQ, "*="},
 		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
+
+		{token.LBRACKET, "["},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.INT, "2"},
+		{token.RBRACKET, "]"},
 		{token.SEMICOLON, ";"},
 
 		{token.EOF, ""},
