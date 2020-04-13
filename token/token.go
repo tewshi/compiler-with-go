@@ -97,6 +97,10 @@ const (
 	LBRACE = "{"
 	// RBRACE for right bracket symbol
 	RBRACE = "}"
+	// LBRACKET for right square bracket symbol
+	LBRACKET = "["
+	// RBRACKET for right square bracket symbol
+	RBRACKET = "]"
 
 	// FUNCTION for function keyword
 	FUNCTION = "FUNCTION" // func add() {}
