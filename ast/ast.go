@@ -281,6 +281,53 @@ func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 // String string representation of a string
 func (sl *StringLiteral) String() string { return sl.Token.Literal }
 
+// ArrayLiteral represents a array in a statement
+type ArrayLiteral struct {
+	Token    token.Token // the '[' token
+	Elements Expressions
+}
+
+func (al *ArrayLiteral) expressionNode() {}
+
+// TokenLiteral the literal value of the string token
+func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+
+// String string representation of a string
+func (al *ArrayLiteral) String() string {
+	var out bytes.Buffer
+	elements := []string{}
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
+
+// IndexExpression represents an index in a statement: arr[1]
+type IndexExpression struct {
+	Token token.Token // The [ token
+	Left  Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) expressionNode() {}
+
+// TokenLiteral the literal value of the index expression token
+func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// String string representation of a index expression
+func (ie *IndexExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
+	return out.String()
+}
+
 // FunctionLiteral represents a function in a statement
 type FunctionLiteral struct {
 	Token      token.Token // The 'fn' token
