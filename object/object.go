@@ -26,6 +26,8 @@ const (
 	ERROROBJ = "ERROR"
 	// FUNCTIONOBJ represents a function object
 	FUNCTIONOBJ = "FUNCTION"
+	// BUILTINOBJ represents a built-in function object
+	BUILTINOBJ = "BUILTIN"
 )
 
 // Type represents the type of an object
@@ -39,6 +41,9 @@ type Object interface {
 
 // Objects list of objects
 type Objects []Object
+
+// BuiltinFunction represents a built-in function
+type BuiltinFunction func(args ...Object) Object
 
 // Integer the int type
 type Integer struct {
@@ -152,3 +157,14 @@ func (f *Function) Inspect() string {
 	out.WriteString("};")
 	return out.String()
 }
+
+// Builtin represents a built-in function in our program
+type Builtin struct {
+	Fn BuiltinFunction
+}
+
+// Type returns the object type of this value
+func (b *Builtin) Type() Type { return BUILTINOBJ }
+
+// Inspect returns a readable string of the build-in function
+func (b *Builtin) Inspect() string { return "builtin function" }
