@@ -137,6 +137,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Value}
+
 	case *ast.ReturnStatement:
 		val := Eval(node.Value, env)
 		// stop propagation here if we encounter an error
@@ -271,44 +274,50 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 }
 
 func evalInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	var l object.Object = left
+	var r object.Object = right
+	if left.Type() == object.IDENTIFIEROBJ {
+		l = left.(*object.Identifier).Value
+	}
+	if right.Type() == object.IDENTIFIEROBJ {
+		r = right.(*object.Identifier).Value
+	}
 	switch {
-	case left.Type() == object.IDENTIFIEROBJ || right.Type() == object.IDENTIFIEROBJ:
-		var l object.Object = left
-		var r object.Object = right
-		if left.Type() == object.IDENTIFIEROBJ {
-			l = left.(*object.Identifier).Value.(*object.Integer)
-		}
-		if right.Type() == object.IDENTIFIEROBJ {
-			r = right.(*object.Identifier).Value.(*object.Integer)
-		}
+	case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
 		return evalIntegerInfixExpression(operator, l, r)
-	case left.Type() == object.INTEGEROBJ && right.Type() == object.INTEGEROBJ:
-		return evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.BOOLEANOBJ && right.Type() == object.BOOLEANOBJ:
-		return evalBooleanInfixExpression(operator, left, right)
-	case left.Type() != right.Type():
-		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+	case l.Type() == object.BOOLEANOBJ && r.Type() == object.BOOLEANOBJ:
+		return evalBooleanInfixExpression(operator, l, r)
+	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
+		return evalStringInfixExpression(operator, l, r)
+	case l.Type() != r.Type():
+		return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 	case operator == token.EQ:
-		return nativeBoolToBooleanObject(left == right)
+		return nativeBoolToBooleanObject(l == r)
 	case operator == token.NOTEQ:
-		return nativeBoolToBooleanObject(left != right)
+		return nativeBoolToBooleanObject(l != r)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator: %s %s %s", l.Type(), operator, r.Type())
 	}
 }
 
 func evalInfixInplaceExpression(operator string, left object.Object, right object.Object) object.Object {
 
+	var l object.Object = left
+	var r object.Object = right
+	if left.Type() == object.IDENTIFIEROBJ {
+		l = left.(*object.Identifier).Value
+	}
+	if right.Type() == object.IDENTIFIEROBJ {
+		r = right.(*object.Identifier).Value
+	}
+
 	switch {
-	case left.Type() == object.IDENTIFIEROBJ && right.Type() == object.INTEGEROBJ:
-		l := left.(*object.Identifier).Value.(*object.Integer)
-		return evalIntegerInPlaceExpression(operator, l, right)
-	case left.Type() == object.IDENTIFIEROBJ && right.Type() == object.IDENTIFIEROBJ:
-		l := left.(*object.Identifier).Value.(*object.Integer)
-		r := right.(*object.Identifier).Value.(*object.Integer)
+	case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
 		return evalIntegerInPlaceExpression(operator, l, r)
+	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
+		return evalStringInPlaceExpression(operator, l, r)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator: %s %s %s", l.Type(), operator, r.Type())
 	}
 }
 
@@ -506,6 +515,42 @@ func evalBooleanInfixExpression(operator string, left object.Object, right objec
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalStringInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	lvalue := left.(*object.String).Value
+	rvalue := right.(*object.String).Value
+	switch operator {
+	case token.NOTEQ:
+		return nativeBoolToBooleanObject(lvalue != rvalue)
+	case token.EQ:
+		return nativeBoolToBooleanObject(lvalue == rvalue)
+	case token.PLUS:
+		return evalPlusOperatorStringExpression(left, right)
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalStringInPlaceExpression(operator string, left object.Object, right object.Object) object.Object {
+	switch operator {
+	case token.PLUSEQ:
+		return evalPlusOperatorStringExpression(left, right)
+
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalPlusOperatorStringExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.STRINGOBJ || right.Type() != object.STRINGOBJ {
+		return newError("type mismatch: %s + %s", left.Type(), right.Type())
+	}
+
+	lvalue := left.(*object.String).Value
+	rvalue := right.(*object.String).Value
+
+	return &object.String{Value: lvalue + rvalue}
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
