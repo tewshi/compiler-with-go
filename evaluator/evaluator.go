@@ -48,6 +48,11 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.LetStatement:
 		val := Eval(node.Value, env)
+
+		// if the eval value is an identifier, then fetch out the value from the identifier
+		if val.Type() == object.IDENTIFIEROBJ {
+			val = val.(*object.Identifier).Value
+		}
 		if isError(val) {
 			return val
 		}
@@ -88,7 +93,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalPrefixExpression(node.Operator, right)
 
 	case *ast.InfixExpression:
-		// TODO: check if the left is an identifier for cases of x += 1 or s += "world"
 		left := Eval(node.Left, env)
 		// stop propagation here if we encounter an error
 		if isError(left) {
@@ -101,8 +105,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return right
 		}
 
-		val := evalInfixExpression(node.Operator, left, right)
-
 		modOps := []interface{}{
 			token.PLUSEQ,
 			token.MINUSEQ,
@@ -110,14 +112,21 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			token.ASTERISKEQ,
 		}
 
-		if utils.InArray(node.Operator, modOps) {
-			if identifier, ok := node.Left.(*ast.Identifier); ok {
-				if envVal, okEnv := evalIdentifier(identifier, env).(*object.Integer); !okEnv {
-					return envVal
-				}
+		var val object.Object
 
-				env.Set(identifier.Value, val)
+		if utils.InArray(node.Operator, modOps) {
+			val = evalInfixInplaceExpression(node.Operator, left, right)
+
+			if val.Type() == object.ERROROBJ {
+				return val
 			}
+
+			switch node.Left.(type) {
+			case *ast.Identifier:
+				env.Set(node.Left.String(), val)
+			}
+		} else {
+			val = evalInfixExpression(node.Operator, left, right)
 		}
 
 		return val
@@ -147,6 +156,8 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 
 		switch result := result.(type) {
 		case *object.ReturnValue:
+			return result.Value
+		case *object.Identifier:
 			return result.Value
 		case *object.Error:
 			return result
@@ -185,7 +196,9 @@ func evalExpressions(exps ast.Expressions, env *object.Environment) object.Objec
 func applyFunction(fn object.Object, args object.Objects) object.Object {
 	function, ok := fn.(*object.Function)
 	if !ok {
-		return newError("not a function: %s", fn.Type())
+		if function, ok = fn.(*object.Identifier).Value.(*object.Function); !ok {
+			return newError("not a function: %s", fn.Type())
+		}
 	}
 	extendedEnv := extendFunctionEnv(function, args)
 	evaluated := Eval(function.Body, extendedEnv)
@@ -213,7 +226,7 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 		return newError("identifier not found: " + node.Value)
 	}
 
-	return val
+	return &object.Identifier{Name: node.Value, Value: val}
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
@@ -259,6 +272,16 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 
 func evalInfixExpression(operator string, left object.Object, right object.Object) object.Object {
 	switch {
+	case left.Type() == object.IDENTIFIEROBJ || right.Type() == object.IDENTIFIEROBJ:
+		var l object.Object = left
+		var r object.Object = right
+		if left.Type() == object.IDENTIFIEROBJ {
+			l = left.(*object.Identifier).Value.(*object.Integer)
+		}
+		if right.Type() == object.IDENTIFIEROBJ {
+			r = right.(*object.Identifier).Value.(*object.Integer)
+		}
+		return evalIntegerInfixExpression(operator, l, r)
 	case left.Type() == object.INTEGEROBJ && right.Type() == object.INTEGEROBJ:
 		return evalIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.BOOLEANOBJ && right.Type() == object.BOOLEANOBJ:
@@ -269,6 +292,21 @@ func evalInfixExpression(operator string, left object.Object, right object.Objec
 		return nativeBoolToBooleanObject(left == right)
 	case operator == token.NOTEQ:
 		return nativeBoolToBooleanObject(left != right)
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalInfixInplaceExpression(operator string, left object.Object, right object.Object) object.Object {
+
+	switch {
+	case left.Type() == object.IDENTIFIEROBJ && right.Type() == object.INTEGEROBJ:
+		l := left.(*object.Identifier).Value.(*object.Integer)
+		return evalIntegerInPlaceExpression(operator, l, right)
+	case left.Type() == object.IDENTIFIEROBJ && right.Type() == object.IDENTIFIEROBJ:
+		l := left.(*object.Identifier).Value.(*object.Integer)
+		r := right.(*object.Identifier).Value.(*object.Integer)
+		return evalIntegerInPlaceExpression(operator, l, r)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -300,6 +338,13 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	case token.NOTEQ:
 		return evalNotEqualToOperatorIntegerExpression(left, right)
 
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalIntegerInPlaceExpression(operator string, left object.Object, right object.Object) object.Object {
+	switch operator {
 	case token.PLUSEQ:
 		return evalPlusOperatorIntegerExpression(left, right)
 	case token.MINUSEQ:
@@ -308,6 +353,7 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 		return evalMultiplyOperatorIntegerExpression(left, right)
 	case token.SLASHEQ:
 		return evalDivideOperatorIntegerExpression(left, right)
+
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
