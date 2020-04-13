@@ -31,121 +31,160 @@ func TestNextToken(t *testing.T) {
 	x /= 9;
 	x *= 9;
 	`
-	tests := token.Tokens{
-		token.Token{Type: token.LET, Literal: "let"},
-		token.Token{Type: token.IDENT, Literal: "five"},
-		token.Token{Type: token.ASSIGN, Literal: "="},
-		token.Token{Type: token.INT, Literal: "5"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.LET, "let"},
+		{token.IDENT, "five"},
+		{token.ASSIGN, "="},
+		{token.INT, "5"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.LET, Literal: "let"},
-		token.Token{Type: token.IDENT, Literal: "ten"},
-		token.Token{Type: token.ASSIGN, Literal: "="},
-		token.Token{Type: token.INT, Literal: "10"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.LET, "let"},
+		{token.IDENT, "ten"},
+		{token.ASSIGN, "="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.LET, Literal: "let"},
-		token.Token{Type: token.IDENT, Literal: "add"},
-		token.Token{Type: token.ASSIGN, Literal: "="},
-		token.Token{Type: token.FUNCTION, Literal: "fn"},
-		token.Token{Type: token.LPAREN, Literal: "("},
-		token.Token{Type: token.IDENT, Literal: "x"},
-		token.Token{Type: token.COMMA, Literal: ","},
-		token.Token{Type: token.IDENT, Literal: "y"},
-		token.Token{Type: token.RPAREN, Literal: ")"},
-		token.Token{Type: token.LBRACE, Literal: "{"},
-		token.Token{Type: token.IDENT, Literal: "x"},
-		token.Token{Type: token.PLUS, Literal: "+"},
-		token.Token{Type: token.IDENT, Literal: "y"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
-		token.Token{Type: token.RBRACE, Literal: "}"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.LET, "let"},
+		{token.IDENT, "add"},
+		{token.ASSIGN, "="},
+		{token.FUNCTION, "fn"},
+		{token.LPAREN, "("},
+		{token.IDENT, "x"},
+		{token.COMMA, ","},
+		{token.IDENT, "y"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.IDENT, "x"},
+		{token.PLUS, "+"},
+		{token.IDENT, "y"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.LET, Literal: "let"},
-		token.Token{Type: token.IDENT, Literal: "result"},
-		token.Token{Type: token.ASSIGN, Literal: "="},
-		token.Token{Type: token.IDENT, Literal: "add"},
-		token.Token{Type: token.LPAREN, Literal: "("},
-		token.Token{Type: token.IDENT, Literal: "five"},
-		token.Token{Type: token.COMMA, Literal: ","},
-		token.Token{Type: token.IDENT, Literal: "ten"},
-		token.Token{Type: token.RPAREN, Literal: ")"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.LET, "let"},
+		{token.IDENT, "result"},
+		{token.ASSIGN, "="},
+		{token.IDENT, "add"},
+		{token.LPAREN, "("},
+		{token.IDENT, "five"},
+		{token.COMMA, ","},
+		{token.IDENT, "ten"},
+		{token.RPAREN, ")"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.BANG, Literal: "!"},
-		token.Token{Type: token.MINUS, Literal: "-"},
-		token.Token{Type: token.SLASH, Literal: "/"},
-		token.Token{Type: token.ASTERISK, Literal: "*"},
-		token.Token{Type: token.INT, Literal: "5"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.BANG, "!"},
+		{token.MINUS, "-"},
+		{token.SLASH, "/"},
+		{token.ASTERISK, "*"},
+		{token.INT, "5"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.INT, Literal: "5"},
-		token.Token{Type: token.LT, Literal: "<"},
-		token.Token{Type: token.INT, Literal: "10"},
-		token.Token{Type: token.GT, Literal: ">"},
-		token.Token{Type: token.INT, Literal: "5"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.INT, "5"},
+		{token.LT, "<"},
+		{token.INT, "10"},
+		{token.GT, ">"},
+		{token.INT, "5"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.IF, Literal: "if"},
-		token.Token{Type: token.LPAREN, Literal: "("},
-		token.Token{Type: token.INT, Literal: "5"},
-		token.Token{Type: token.LT, Literal: "<"},
-		token.Token{Type: token.INT, Literal: "10"},
-		token.Token{Type: token.RPAREN, Literal: ")"},
-		token.Token{Type: token.LBRACE, Literal: "{"},
-		token.Token{Type: token.RETURN, Literal: "return"},
-		token.Token{Type: token.TRUE, Literal: "true"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
-		token.Token{Type: token.RBRACE, Literal: "}"},
-		token.Token{Type: token.ELSE, Literal: "else"},
-		token.Token{Type: token.LBRACE, Literal: "{"},
-		token.Token{Type: token.RETURN, Literal: "return"},
-		token.Token{Type: token.FALSE, Literal: "false"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
-		token.Token{Type: token.RBRACE, Literal: "}"},
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.INT, "5"},
+		{token.LT, "<"},
+		{token.INT, "10"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.TRUE, "true"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
+		{token.ELSE, "else"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.FALSE, "false"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
 
-		token.Token{Type: token.INT, Literal: "10"},
-		token.Token{Type: token.EQ, Literal: "=="},
-		token.Token{Type: token.INT, Literal: "10"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.INT, "10"},
+		{token.EQ, "=="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.INT, Literal: "10"},
-		token.Token{Type: token.NOTEQ, Literal: "!="},
-		token.Token{Type: token.INT, Literal: "9"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.INT, "10"},
+		{token.NOTEQ, "!="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.IDENT, Literal: "x"},
-		token.Token{Type: token.MINUSEQ, Literal: "-="},
-		token.Token{Type: token.INT, Literal: "9"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.IDENT, "x"},
+		{token.MINUSEQ, "-="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.IDENT, Literal: "x"},
-		token.Token{Type: token.PLUSEQ, Literal: "+="},
-		token.Token{Type: token.INT, Literal: "9"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
+		{token.IDENT, "x"},
+		{token.PLUSEQ, "+="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
 
-		token.Token{Type: token.IDENT, Literal: "x"},
-		token.Token{Type: token.SLASHEQ, Literal: "/="},
-		token.Token{Type: token.INT, Literal: "9"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
-		token.Token{Type: token.IDENT, Literal: "x"},
+		{token.IDENT, "x"},
+		{token.SLASHEQ, "/="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
+		{token.IDENT, "x"},
 
-		token.Token{Type: token.ASTERISKEQ, Literal: "*="},
-		token.Token{Type: token.INT, Literal: "9"},
-		token.Token{Type: token.SEMICOLON, Literal: ";"},
-		token.Token{Type: token.EOF, Literal: ""},
+		{token.ASTERISKEQ, "*="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
+
+		{token.EOF, ""},
 	}
 
 	l := NewLexer(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
-		if tok.Type != tt.Type {
+		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q",
-				i, tt.Type, tok.Type)
+				i, tt.expectedType, tok.Type)
 		}
-		if tok.Literal != tt.Literal {
+		if tok.Literal != tt.expectedLiteral {
 			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
-				i, tt.Literal, tok.Literal)
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+func TestNextStringToken(t *testing.T) {
+	input := `
+	"foobar"
+	"foo bar"
+	"\"mendy\""
+	"\"mendy\"\n"
+	"\"mendy\"\t"
+	`
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.STRING, "foobar"},
+		{token.STRING, "foo bar"},
+		{token.STRING, "\"mendy\""},
+		{token.STRING, "\"mendy\"\n"},
+		{token.STRING, "\"mendy\"\t"},
+
+		{token.EOF, ""},
+	}
+
+	l := NewLexer(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q",
+				i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
 		}
 	}
 }
