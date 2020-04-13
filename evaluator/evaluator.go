@@ -283,6 +283,9 @@ func unwrapReturnValue(obj object.Object) object.Object {
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
 
 	if val, ok := env.Get(node.Value); ok {
+		if val.Type() == object.IDENTIFIEROBJ {
+			val = val.(*object.Identifier).Value
+		}
 		return &object.Identifier{Name: node.Value, Value: val}
 	}
 
@@ -324,13 +327,18 @@ func isTruthy(obj object.Object) bool {
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
+	var r object.Object = right
+	if right.Type() == object.IDENTIFIEROBJ {
+		r = right.(*object.Identifier).Value
+	}
+
 	switch operator {
 	case "!":
-		return evalBangOperatorExpression(right)
+		return evalBangOperatorExpression(r)
 	case "-":
-		return evalMinusPrefixOperatorExpression(right)
+		return evalMinusPrefixOperatorExpression(r)
 	default:
-		return newError("unknown operator: %s%s", operator, right.Type())
+		return newError("unknown operator: %s%s", operator, r.Type())
 	}
 }
 
