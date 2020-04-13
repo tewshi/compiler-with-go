@@ -138,6 +138,8 @@ func TestReturnStatements(t *testing.T) {
 
 		{"let addTwo = fn(x) { x + 2; }; addTwo(2);", 4},
 		{"let multiply = fn(x, y) { x * y }; multiply(50 / 2, 1 * 2);", 50},
+		{"let pow = fn(x) { x * x }; pow(5);", 25},
+		{"let double = fn(x) { x * 2 }; double(5);", 10},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -337,9 +339,80 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len("")`, 0},
 		{`len("four")`, 4},
 		{`len("hello world")`, 11},
-		{`len(1)`, "argument to `len` not supported, got INTEGER, want STRING"},
-		{`len(true)`, "argument to `len` not supported, got BOOLEAN, want STRING"},
+		{`len(1)`, "argument to `len` not supported, got INTEGER, want STRING or ARRAY"},
+		{`len(true)`, "argument to `len` not supported, got BOOLEAN, want STRING or ARRAY"},
 		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+
+		{`let a = [1, 2, 3, 4]; rest(a)`,
+			&object.Array{Elements: object.Objects{
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 4},
+			}},
+		},
+		{`let a = [1, 2, 3, 4]; rest(rest(a))`,
+			&object.Array{Elements: object.Objects{
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 4},
+			}},
+		},
+
+		{`let a = [1, 2, 3, 4]; let b = push(a, 5); a;`,
+			&object.Array{Elements: object.Objects{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 4},
+			}},
+		},
+		{`let a = [1, 2, 3, 4]; let b = push(a, 5); b;`,
+			&object.Array{Elements: object.Objects{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 4},
+				&object.Integer{Value: 5},
+			}},
+		},
+
+		{`
+		let map = fn(arr, f) {
+			let iter = fn(arr, accumulated) {
+				if (len(arr) == 0) {
+					accumulated
+				} else {
+					iter(rest(arr), push(accumulated, f(first(arr))));
+				}
+			};
+			
+			iter(arr, []);
+		};
+		let a = [1, 2, 3, 4];
+		let double = fn(x) { x * 2 };
+		map(a, double);`,
+			&object.Array{Elements: object.Objects{
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 4},
+				&object.Integer{Value: 6},
+				&object.Integer{Value: 8},
+			}},
+		},
+		{`
+		let reduce = fn(arr, initial, f) {
+			let iter = fn(arr, result) {
+				if (len(arr) == 0) {
+					result
+				} else {
+					iter(rest(arr), f(result, first(arr)));
+				}
+			};
+			iter(arr, initial);
+		};
+		let sum = fn(arr) {
+			reduce(arr, 0, fn(initial, el) { initial + el });
+		};
+		sum([1, 2, 3, 4, 5]);`, 15,
+		},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -356,6 +429,25 @@ func TestBuiltinFunctions(t *testing.T) {
 			if errObj.Message != expected {
 				t.Errorf("wrong error message. expected=%q, got=%q",
 					expected, errObj.Message)
+			}
+		case *object.Array:
+			arr, ok := evaluated.(*object.Array)
+			if !ok {
+				t.Errorf("object is not Array. got=%T (%+v)",
+					evaluated, evaluated)
+				continue
+			}
+
+			if len(arr.Elements) != len(expected.Elements) {
+				t.Errorf("wrong array length. expected=%d, got=%d",
+					len(expected.Elements), len(arr.Elements))
+			}
+			for i, el := range arr.Elements {
+				if el.Inspect() != expected.Elements[i].Inspect() {
+					t.Errorf("wrong object at index %d. expected=%q, got=%q",
+						i, expected.Elements[i].Inspect(), el.Inspect())
+				}
+
 			}
 		}
 	}
