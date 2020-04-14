@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"hash/fnv"
 	"monkey/ast"
+	"strconv"
 	"strings"
 )
 
 const (
 	// INTEGEROBJ represents an integer object
 	INTEGEROBJ = "INTEGER"
+	// DOUBLEOBJ represents a double object
+	DOUBLEOBJ = "DOUBLE"
 	// STRINGOBJ represents an string object
 	STRINGOBJ = "STRING"
 	// BOOLEANOBJ represents an boolean object
@@ -69,6 +72,23 @@ func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 // HashKey generates a hash for an integer key
 func (i *Integer) HashKey() HashKey {
 	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
+// Double the int type
+type Double struct {
+	Value     float64
+	Precision int // the double's precision
+}
+
+// Type returns the object type of this value
+func (db *Double) Type() Type { return DOUBLEOBJ }
+
+// Inspect returns a readable string of the double value
+func (db *Double) Inspect() string { return strconv.FormatFloat(db.Value, 'f', db.Precision, 64) }
+
+// HashKey generates a hash for an double key
+func (db *Double) HashKey() HashKey {
+	return HashKey{Type: db.Type(), Value: uint64(db.Value)}
 }
 
 // String the int type
