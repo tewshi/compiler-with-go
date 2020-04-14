@@ -58,6 +58,8 @@ const (
 	ASTERISK = "*"
 	// SLASH for division operator
 	SLASH = "/"
+	// POWER for power operator
+	POWER = "^"
 
 	// BANG for bang (not) operator
 	BANG = "!"
