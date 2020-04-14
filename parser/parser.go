@@ -26,8 +26,10 @@ const (
 	PRODUCT // *
 	// POWER just above product in prcecedence
 	POWER // ^
-	// PREFIX just above profuct in prcecedence
+	// PREFIX just above power in prcecedence
 	PREFIX // -X or !X
+	// PERIOD just above prefix in prcecedence
+	PERIOD // 1.2
 	// CALL just above prefix in prcecedence
 	CALL // myFunction(X)
 	// INDEX above all others in prcecedence
@@ -51,6 +53,7 @@ var precedences = map[token.Type]int{
 	token.SLASH:      PRODUCT,
 	token.ASTERISK:   PRODUCT,
 	token.POWER:      POWER,
+	token.PERIOD:     PERIOD,
 	token.LPAREN:     CALL,
 	token.LBRACKET:   INDEX,
 }
@@ -108,6 +111,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.POWER, p.parseInfixExpression)
+	p.registerInfix(token.PERIOD, p.parseInfixExpression)
 
 	p.registerInfix(token.PLUSEQ, p.parseInfixExpression)
 	p.registerInfix(token.MINUSEQ, p.parseInfixExpression)
@@ -212,7 +216,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	// defer untrace(trace("parseIntegerLiteral"))
 	lit := &ast.IntegerLiteral{Token: p.curToken}
-	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	value, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
@@ -338,6 +342,33 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	// }
 
 	expression.Right = p.parseExpression(precedence)
+
+	if expression.Operator == token.PERIOD {
+		l, okl := expression.Left.(*ast.IntegerLiteral)
+		r, okr := expression.Right.(*ast.IntegerLiteral)
+		if !(okl && okr) {
+			return nil
+		}
+		if r.Value < 0 {
+			return nil
+		}
+
+		literal := fmt.Sprintf("%s%s%s", l.TokenLiteral(), token.PERIOD, r.TokenLiteral())
+
+		precision := len(r.TokenLiteral())
+
+		double := &ast.DoubleLiteral{Token: token.Token{Literal: literal, Type: token.DOUBLE}, Precision: precision}
+
+		value, err := strconv.ParseFloat(literal, 64)
+		if err != nil {
+			msg := fmt.Sprintf("could not parse %q as double", literal)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+		double.Value = value
+
+		return double
+	}
 	return expression
 }
 
