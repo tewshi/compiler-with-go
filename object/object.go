@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"monkey/ast"
 	"strings"
 )
@@ -16,6 +17,8 @@ const (
 	BOOLEANOBJ = "BOOLEAN"
 	// ARRAYOBJ represents an array object
 	ARRAYOBJ = "ARRAY"
+	// HASHOBJ represents an hash object
+	HASHOBJ = "HASH"
 	// NULLOBJ represents an nil object
 	NULLOBJ = "NULL"
 	// NANOBJ represents an nil object
@@ -31,6 +34,11 @@ const (
 	// BUILTINOBJ represents a built-in function object
 	BUILTINOBJ = "BUILTIN"
 )
+
+// Hashable represents a hashable object
+type Hashable interface {
+	HashKey() HashKey
+}
 
 // Type represents the type of an object
 type Type string
@@ -58,6 +66,11 @@ func (i *Integer) Type() Type { return INTEGEROBJ }
 // Inspect returns a readable string of the integer value
 func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 
+// HashKey generates a hash for an integer key
+func (i *Integer) HashKey() HashKey {
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
 // String the int type
 type String struct {
 	Value string
@@ -69,16 +82,34 @@ func (s *String) Type() Type { return STRINGOBJ }
 // Inspect returns a readable string of the String value
 func (s *String) Inspect() string { return s.Value }
 
+// HashKey generates a hash for a string key
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
+}
+
 // Boolean the bool type
 type Boolean struct {
 	Value bool
 }
 
 // Type returns the object type of this value
-func (i *Boolean) Type() Type { return BOOLEANOBJ }
+func (b *Boolean) Type() Type { return BOOLEANOBJ }
 
 // Inspect returns a readable string of the boolean value
-func (i *Boolean) Inspect() string { return fmt.Sprintf("%t", i.Value) }
+func (b *Boolean) Inspect() string { return fmt.Sprintf("%t", b.Value) }
+
+// HashKey generates a hash for a boolean key
+func (b *Boolean) HashKey() HashKey {
+	var value uint64
+	if b.Value {
+		value = 1
+	} else {
+		value = 0
+	}
+	return HashKey{Type: b.Type(), Value: value}
+}
 
 // Array the array data structure
 type Array struct {
@@ -98,6 +129,40 @@ func (ao *Array) Inspect() string {
 	out.WriteString("[")
 	out.WriteString(strings.Join(elements, ", "))
 	out.WriteString("]")
+	return out.String()
+}
+
+// HashKey the has key object
+type HashKey struct {
+	Type  Type
+	Value uint64
+}
+
+// HashPair represents a hash pair object... k:v pairs
+type HashPair struct {
+	Key   Object
+	Value Object
+}
+
+// Hash represents a hash object... {k:v}
+type Hash struct {
+	Pairs map[HashKey]HashPair
+}
+
+// Type returns the object type of this value
+func (h *Hash) Type() Type { return HASHOBJ }
+
+// Inspect returns a readable string of the hash value
+func (h *Hash) Inspect() string {
+	var out bytes.Buffer
+	pairs := []string{}
+	for _, pair := range h.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s",
+			pair.Key.Inspect(), pair.Value.Inspect()))
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
 	return out.String()
 }
 
