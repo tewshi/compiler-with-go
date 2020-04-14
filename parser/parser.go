@@ -287,8 +287,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return leftExp
 }
 
-func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
-	list := []ast.Expression{}
+func (p *Parser) parseExpressionList(end token.Type) ast.Expressions {
+	list := ast.Expressions{}
 
 	if p.peekTokenIs(end) {
 		p.nextToken()
@@ -402,7 +402,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}
-	block.Statements = []ast.Statement{}
+	block.Statements = ast.Statements{}
 	p.nextToken()
 	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
 		stmt := p.parseStatement()

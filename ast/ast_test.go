@@ -5,9 +5,10 @@ import (
 	"testing"
 )
 
+// TODO: add more tests here
 func TestString(t *testing.T) {
 	program := &Program{
-		Statements: []Statement{
+		Statements: Statements{
 			&LetStatement{
 				Token: token.Token{Type: token.LET, Literal: "let"},
 				Name: &Identifier{
