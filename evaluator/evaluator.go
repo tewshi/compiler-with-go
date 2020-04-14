@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 	"monkey/ast"
 	"monkey/object"
 	"monkey/token"
@@ -116,11 +117,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			token.ASTERISKEQ,
 		}
 
-		var val object.Object
+		var val object.Object = evalInfixExpression(node.Operator, left, right)
 
 		if utils.InArray(node.Operator, modOps) {
-			val = evalInfixInplaceExpression(node.Operator, left, right)
-
 			if val.Type() == object.ERROROBJ {
 				return val
 			}
@@ -129,8 +128,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			case *ast.Identifier:
 				env.Set(node.Left.String(), val)
 			}
-		} else {
-			val = evalInfixExpression(node.Operator, left, right)
 		}
 
 		return val
@@ -399,37 +396,27 @@ func evalInfixExpression(operator string, left object.Object, right object.Objec
 	switch {
 	case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
 		return evalIntegerInfixExpression(operator, l, r)
+	case l.Type() == object.DOUBLEOBJ && r.Type() == object.DOUBLEOBJ:
+		return evalDoubleInfixExpression(operator, l, r)
 	case l.Type() == object.BOOLEANOBJ && r.Type() == object.BOOLEANOBJ:
 		return evalBooleanInfixExpression(operator, l, r)
 	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
 		return evalStringInfixExpression(operator, l, r)
+	case operator == token.POWER:
+		switch {
+		case l.Type() == object.INTEGEROBJ && r.Type() == object.DOUBLEOBJ:
+			return evalPowerOperatorDoubleIntegerExpression(l, r)
+		case l.Type() == object.DOUBLEOBJ && r.Type() == object.INTEGEROBJ:
+			return evalPowerOperatorDoubleIntegerExpression(l, r)
+		default:
+			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
+		}
 	case l.Type() != r.Type():
 		return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 	case operator == token.EQ:
 		return nativeBoolToBooleanObject(l == r)
 	case operator == token.NOTEQ:
 		return nativeBoolToBooleanObject(l != r)
-	default:
-		return newError("unknown operator: %s %s %s", l.Type(), operator, r.Type())
-	}
-}
-
-func evalInfixInplaceExpression(operator string, left object.Object, right object.Object) object.Object {
-
-	var l object.Object = left
-	var r object.Object = right
-	if left.Type() == object.IDENTIFIEROBJ {
-		l = left.(*object.Identifier).Value
-	}
-	if right.Type() == object.IDENTIFIEROBJ {
-		r = right.(*object.Identifier).Value
-	}
-
-	switch {
-	case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
-		return evalIntegerInPlaceExpression(operator, l, r)
-	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
-		return evalStringInPlaceExpression(operator, l, r)
 	default:
 		return newError("unknown operator: %s %s %s", l.Type(), operator, r.Type())
 	}
@@ -463,17 +450,7 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	case token.NOTEQ:
 		return evalNotEqualToOperatorIntegerExpression(left, right)
 
-	// ^
-	case token.POWER:
-		return evalPowerOperatorIntegerExpression(left, right)
-
-	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	}
-}
-
-func evalIntegerInPlaceExpression(operator string, left object.Object, right object.Object) object.Object {
-	switch operator {
+	// += -= *= /=
 	case token.PLUSEQ:
 		return evalPlusOperatorIntegerExpression(left, right)
 	case token.MINUSEQ:
@@ -483,9 +460,92 @@ func evalIntegerInPlaceExpression(operator string, left object.Object, right obj
 	case token.SLASHEQ:
 		return evalDivideOperatorIntegerExpression(left, right)
 
+	// ^
+	case token.POWER:
+		return evalPowerOperatorIntegerExpression(left, right)
+
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalDoubleInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	if left.Type() != object.DOUBLEOBJ || right.Type() != object.DOUBLEOBJ {
+		return newError("type mismatch: %s + %s", left.Type(), right.Type())
+	}
+
+	l := left.(*object.Double)
+	r := right.(*object.Double)
+	lvalue := l.Value
+	rvalue := r.Value
+	precision := utils.MaxInt(l.Precision, r.Precision)
+
+	switch operator {
+	// + - * /
+	case token.PLUS:
+		return &object.Double{Value: lvalue + rvalue, Precision: precision}
+	case token.MINUS:
+		return &object.Double{Value: lvalue - rvalue, Precision: precision}
+	case token.ASTERISK:
+		product := lvalue * rvalue
+		precision := utils.MaxInt(precision, utils.Precision(fmt.Sprint(product)))
+		return &object.Double{Value: product, Precision: precision}
+	case token.SLASH:
+		div := lvalue / rvalue
+		precision := utils.MaxInt(precision, utils.Precision(fmt.Sprint(div)))
+		return &object.Double{Value: div, Precision: precision}
+
+	// < <= > >=
+	case token.LT:
+		return nativeBoolToBooleanObject(lvalue < rvalue)
+	case token.LTEQ:
+		return nativeBoolToBooleanObject(lvalue <= rvalue)
+	case token.GT:
+		return nativeBoolToBooleanObject(lvalue > rvalue)
+	case token.GTEQ:
+		return nativeBoolToBooleanObject(lvalue >= rvalue)
+
+	// == !=
+	case token.EQ:
+		return nativeBoolToBooleanObject(lvalue == rvalue)
+	case token.NOTEQ:
+		return nativeBoolToBooleanObject(lvalue != rvalue)
+
+	// ^
+	case token.POWER:
+		return evalPowerOperatorDoubleIntegerExpression(left, right)
+
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalPowerOperatorDoubleIntegerExpression(left object.Object, right object.Object) object.Object {
+
+	if !((left.Type() != object.INTEGEROBJ || left.Type() != object.DOUBLEOBJ) && (right.Type() != object.INTEGEROBJ || right.Type() != object.DOUBLEOBJ)) {
+		return newError("type mismatch: %s ^ %s", left.Type(), right.Type())
+	}
+
+	var lvalue float64
+	var rvalue float64
+
+	if left.Type() == object.DOUBLEOBJ {
+		lvalue = left.(*object.Double).Value
+	} else {
+		lvalue = float64(left.(*object.Integer).Value)
+	}
+
+	if right.Type() == object.DOUBLEOBJ {
+		rvalue = right.(*object.Double).Value
+	} else {
+		rvalue = float64(right.(*object.Integer).Value)
+	}
+
+	val := math.Pow(lvalue, rvalue)
+
+	precision := utils.Precision(fmt.Sprint(val))
+
+	return &object.Double{Value: val, Precision: precision}
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {
@@ -623,25 +683,9 @@ func evalPowerOperatorIntegerExpression(left object.Object, right object.Object)
 	lvalue := left.(*object.Integer).Value
 	rvalue := right.(*object.Integer).Value
 
-	if rvalue == 0 {
-		return &object.Integer{Value: 1}
-	}
-	if rvalue == 1 {
-		return &object.Integer{Value: lvalue}
-	}
+	val := int64(math.Pow(float64(lvalue), float64(rvalue)))
 
-	N := int(utils.Abs(rvalue))
-	P := lvalue
-
-	for i := 1; i < N; i++ {
-		lvalue *= P
-	}
-
-	if rvalue < 0 {
-		lvalue = 1 / lvalue
-	}
-
-	return &object.Integer{Value: lvalue}
+	return &object.Integer{Value: val}
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
@@ -675,31 +719,12 @@ func evalStringInfixExpression(operator string, left object.Object, right object
 	case token.EQ:
 		return nativeBoolToBooleanObject(lvalue == rvalue)
 	case token.PLUS:
-		return evalPlusOperatorStringExpression(left, right)
-	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	}
-}
-
-func evalStringInPlaceExpression(operator string, left object.Object, right object.Object) object.Object {
-	switch operator {
+		return &object.String{Value: lvalue + rvalue}
 	case token.PLUSEQ:
-		return evalPlusOperatorStringExpression(left, right)
-
+		return &object.String{Value: lvalue + rvalue}
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
-}
-
-func evalPlusOperatorStringExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.STRINGOBJ || right.Type() != object.STRINGOBJ {
-		return newError("type mismatch: %s + %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.String).Value
-	rvalue := right.(*object.String).Value
-
-	return &object.String{Value: lvalue + rvalue}
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
