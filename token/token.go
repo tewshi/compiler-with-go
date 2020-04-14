@@ -89,6 +89,8 @@ const (
 	COMMA = ","
 	// SEMICOLON for semicolon symbol
 	SEMICOLON = ";"
+	// COLON for colon symbol
+	COLON = ":"
 	// LPAREN for left parenthesis symbol
 	LPAREN = "("
 	// RPAREN for right parsnthesis symbol
