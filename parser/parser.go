@@ -183,7 +183,7 @@ func (p *Parser) registerPrefix(tokenType token.Type, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
 
-// noPrefixParseFnError sets the error prefix expression that has no prefix
+// noPrefixParseFnError sets the error for a prefix expression that has no registered prefix parser
 func (p *Parser) noPrefixParseFnError(t token.Type) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
@@ -192,6 +192,12 @@ func (p *Parser) noPrefixParseFnError(t token.Type) {
 // registerInfix registers an infix parser for a token type
 func (p *Parser) registerInfix(tokenType token.Type, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
+}
+
+// noInfixParseFnError sets the error for an infix expression that has no registered infix parser
+func (p *Parser) noInfixParseFnError(t token.Type, left string, right string) {
+	msg := fmt.Sprintf("no infix parse function for %s %s %s found", left, t, right)
+	p.errors = append(p.errors, msg)
 }
 
 // Errors returns the list of errors
@@ -347,9 +353,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		l, okl := expression.Left.(*ast.IntegerLiteral)
 		r, okr := expression.Right.(*ast.IntegerLiteral)
 		if !(okl && okr) {
-			return nil
-		}
-		if r.Value < 0 {
+			p.noInfixParseFnError(token.PERIOD, expression.Left.TokenLiteral(), expression.Right.TokenLiteral())
 			return nil
 		}
 
