@@ -305,6 +305,30 @@ func (al *ArrayLiteral) String() string {
 	return out.String()
 }
 
+// HashLiteral represents a hash in a statement
+type HashLiteral struct {
+	Token token.Token // the '{' token
+	Pairs map[Expression]Expression
+}
+
+func (hl *HashLiteral) expressionNode() {}
+
+// TokenLiteral the literal value of the hash token
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
+
+// String string representation of a hash
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+	pairs := []string{}
+	for key, value := range hl.Pairs {
+		pairs = append(pairs, key.String()+": "+value.String())
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+	return out.String()
+}
+
 // IndexExpression represents an index in a statement: arr[1]
 type IndexExpression struct {
 	Token token.Token // The [ token
