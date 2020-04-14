@@ -381,6 +381,14 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"(a * (b ^ c))",
 		},
 		{
+			"a * b ^ c[1]",
+			"(a * (b ^ (c[1])))",
+		},
+		{
+			"a ^ b ^ c[1]",
+			"((a ^ b) ^ (c[1]))",
+		},
+		{
 			"1.2",
 			"1.2",
 		},
@@ -395,6 +403,18 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"0.080",
 			"0.080",
+		},
+		{
+			"1 ^ 1.0",
+			"(1 ^ 1.0)",
+		},
+		{
+			"1.0 ^ 1",
+			"(1.0 ^ 1)",
+		},
+		{
+			"1.0 ^ 1.0",
+			"(1.0 ^ 1.0)",
 		},
 	}
 	for _, tt := range tests {
