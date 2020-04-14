@@ -48,39 +48,14 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return Eval(node.Expression, env)
 
 	case *ast.LetStatement:
-		val := Eval(node.Value, env)
-
-		// if the eval value is an identifier, then fetch out the value from the identifier
-		if val.Type() == object.IDENTIFIEROBJ {
-			val = val.(*object.Identifier).Value
-		}
-		if isError(val) {
-			return val
-		}
-		env.Set(node.Name.Value, val)
+		return evalLetStatement(node, env)
 
 	case *ast.FunctionLiteral:
-		params := node.Parameters
-		body := node.Body
-		return &object.Function{Parameters: params, Env: env, Body: body}
+		return evalFunctionLiteral(node, env)
 
-		// Expressions
+	// Expressions
 	case *ast.CallExpression:
-		function := Eval(node.Function, env)
-		if isError(function) {
-			return function
-		}
-
-		args := evalExpressions(node.Arguments, env)
-		if len(args) >= 1 {
-			for _, arg := range args {
-				if isError(arg) {
-					return arg
-				}
-			}
-		}
-
-		return applyFunction(function, args)
+		return evalFunctionCall(node, env)
 
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
@@ -89,48 +64,22 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalIfExpression(node, env)
 
 	case *ast.PrefixExpression:
-		right := Eval(node.Right, env)
-		// stop propagation here if we encounter an error
-		if isError(right) {
-			return right
-		}
-
-		return evalPrefixExpression(node.Operator, right)
+		return evalPrefixExpression(node, env)
 
 	case *ast.InfixExpression:
-		left := Eval(node.Left, env)
-		// stop propagation here if we encounter an error
-		if isError(left) {
-			return left
-		}
+		return evalInfixExpression(node, env)
 
-		right := Eval(node.Right, env)
-		// stop propagation here if we encounter an error
-		if isError(right) {
-			return right
-		}
+	case *ast.ArrayLiteral:
+		return evalArrayLiteral(node, env)
 
-		modOps := []interface{}{
-			token.PLUSEQ,
-			token.MINUSEQ,
-			token.SLASHEQ,
-			token.ASTERISKEQ,
-		}
+	case *ast.HashLiteral:
+		return evalHashLiteral(node, env)
 
-		var val object.Object = evalInfixExpression(node.Operator, left, right)
+	case *ast.IndexExpression:
+		return evalIndexExpression(node, env)
 
-		if utils.InArray(node.Operator, modOps) {
-			if val.Type() == object.ERROROBJ {
-				return val
-			}
-
-			switch node.Left.(type) {
-			case *ast.Identifier:
-				env.Set(node.Left.String(), val)
-			}
-		}
-
-		return val
+	case *ast.ReturnStatement:
+		return evalReturnStatement(node, env)
 
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -138,46 +87,11 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.DoubleLiteral:
 		return &object.Double{Value: node.Value, Precision: node.Precision}
 
-	case *ast.Boolean:
-		return nativeBoolToBooleanObject(node.Value)
-
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
 
-	case *ast.ArrayLiteral:
-		elements := evalExpressions(node.Elements, env)
-
-		if len(elements) >= 1 {
-			for _, element := range elements {
-				if isError(element) {
-					return element
-				}
-			}
-		}
-		return &object.Array{Elements: elements}
-
-	case *ast.HashLiteral:
-		return evalHashLiteral(node, env)
-
-	case *ast.IndexExpression:
-		left := Eval(node.Left, env)
-		if isError(left) {
-			return left
-		}
-		index := Eval(node.Index, env)
-		if isError(index) {
-			return index
-		}
-		return evalIndexExpression(left, index)
-
-	case *ast.ReturnStatement:
-		val := Eval(node.Value, env)
-		// stop propagation here if we encounter an error
-		if isError(val) {
-			return val
-		}
-
-		return &object.ReturnValue{Value: val}
+	case *ast.Boolean:
+		return nativeBoolToBooleanObject(node.Value)
 	}
 	return nil
 }
@@ -214,6 +128,44 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 	return result
 }
 
+func evalLetStatement(stmt *ast.LetStatement, env *object.Environment) object.Object {
+	val := Eval(stmt.Value, env)
+
+	// if the eval value is an identifier, then fetch out the value from the identifier
+	if val.Type() == object.IDENTIFIEROBJ {
+		val = val.(*object.Identifier).Value
+	}
+	if isError(val) {
+		return val
+	}
+	env.Set(stmt.Name.Value, val)
+	return nil
+}
+
+func evalFunctionLiteral(fn *ast.FunctionLiteral, env *object.Environment) object.Object {
+	params := fn.Parameters
+	body := fn.Body
+	return &object.Function{Parameters: params, Env: env, Body: body}
+}
+
+func evalFunctionCall(fn *ast.CallExpression, env *object.Environment) object.Object {
+	function := Eval(fn.Function, env)
+	if isError(function) {
+		return function
+	}
+
+	args := evalExpressions(fn.Arguments, env)
+	if len(args) >= 1 {
+		for _, arg := range args {
+			if isError(arg) {
+				return arg
+			}
+		}
+	}
+
+	return applyFunction(function, args)
+}
+
 func evalExpressions(exps ast.Expressions, env *object.Environment) object.Objects {
 	var result object.Objects
 	for _, e := range exps {
@@ -224,72 +176,6 @@ func evalExpressions(exps ast.Expressions, env *object.Environment) object.Objec
 		result = append(result, evaluated)
 	}
 	return result
-}
-
-func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) object.Object {
-	pairs := make(map[object.HashKey]object.HashPair)
-	for keyNode, valueNode := range node.Pairs {
-		key := Eval(keyNode, env)
-		if isError(key) {
-			return key
-		}
-		if key.Type() == object.IDENTIFIEROBJ {
-			key = key.(*object.Identifier).Value
-		}
-		hashKey, ok := key.(object.Hashable)
-		if !ok {
-			return newError("unusable as hash key: %s", key.Type())
-		}
-		value := Eval(valueNode, env)
-		if isError(value) {
-			return value
-		}
-		hashed := hashKey.HashKey()
-		pairs[hashed] = object.HashPair{Key: key, Value: value}
-	}
-	return &object.Hash{Pairs: pairs}
-}
-
-func evalIndexExpression(left object.Object, index object.Object) object.Object {
-	var l object.Object = left
-	var idx object.Object = index
-	if left.Type() == object.IDENTIFIEROBJ {
-		l = left.(*object.Identifier).Value
-	}
-	if index.Type() == object.IDENTIFIEROBJ {
-		idx = index.(*object.Identifier).Value
-	}
-	switch {
-	case l.Type() == object.ARRAYOBJ && idx.Type() == object.INTEGEROBJ:
-		return evalArrayIndexExpression(l, idx)
-	case l.Type() == object.HASHOBJ:
-		return evalHashIndexExpression(l, idx)
-	default:
-		return newError("index operator not supported: %s", l.Type())
-	}
-}
-
-func evalArrayIndexExpression(array, index object.Object) object.Object {
-	arrayObject := array.(*object.Array)
-	idx := index.(*object.Integer).Value
-	max := int64(len(arrayObject.Elements) - 1)
-	if idx < 0 || idx > max {
-		return newError("array index out of bounds[0, %d]: %d", max, idx)
-	}
-	return arrayObject.Elements[idx]
-}
-
-func evalHashIndexExpression(hash, index object.Object) object.Object {
-	hashObject := hash.(*object.Hash)
-	key, ok := index.(object.Hashable)
-	if !ok {
-		return newError("unusable as hash key: %s", index.Type())
-	}
-	pair, ok := hashObject.Pairs[key.HashKey()]
-	if !ok {
-		return NULL
-	}
-	return pair.Value
 }
 
 func applyFunction(fn object.Object, args object.Objects) object.Object {
@@ -323,7 +209,6 @@ func unwrapReturnValue(obj object.Object) object.Object {
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-
 	if val, ok := env.Get(node.Value); ok {
 		if val.Type() == object.IDENTIFIEROBJ {
 			val = val.(*object.Identifier).Value
@@ -368,23 +253,95 @@ func isTruthy(obj object.Object) bool {
 	}
 }
 
-func evalPrefixExpression(operator string, right object.Object) object.Object {
-	var r object.Object = right
-	if right.Type() == object.IDENTIFIEROBJ {
-		r = right.(*object.Identifier).Value
+func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) object.Object {
+	r := Eval(pref.Right, env)
+	// stop propagation here if we encounter an error
+	if isError(r) {
+		return r
 	}
 
-	switch operator {
+	if r.Type() == object.IDENTIFIEROBJ {
+		r = r.(*object.Identifier).Value
+	}
+
+	switch pref.Operator {
 	case "!":
 		return evalBangOperatorExpression(r)
 	case "-":
-		return evalMinusPrefixOperatorExpression(r)
+		switch {
+		case r.Type() == object.INTEGEROBJ:
+			return evalMinusPrefixOperatorExpression(r)
+		case r.Type() == object.DOUBLEOBJ:
+			return evalMinusPrefixOperatorExpression(r)
+		default:
+			return newError("unknown operator: %s%s", pref.Operator, r.Type())
+		}
 	default:
-		return newError("unknown operator: %s%s", operator, r.Type())
+		return newError("unknown operator: %s%s", pref.Operator, r.Type())
 	}
 }
 
-func evalInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+func evalBangOperatorExpression(right object.Object) object.Object {
+	switch right {
+	case TRUE:
+		return FALSE
+	case FALSE:
+		return TRUE
+	case NULL:
+		return TRUE
+	default:
+		return FALSE
+	}
+}
+
+func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
+	switch right.Type() {
+	case object.DOUBLEOBJ:
+		value := right.(*object.Double).Value
+		return &object.Double{Value: -value}
+	default:
+		value := right.(*object.Integer).Value
+		return &object.Integer{Value: -value}
+	}
+}
+
+func evalInfixExpression(inf *ast.InfixExpression, env *object.Environment) object.Object {
+	left := Eval(inf.Left, env)
+	// stop propagation here if we encounter an error
+	if isError(left) {
+		return left
+	}
+
+	right := Eval(inf.Right, env)
+	// stop propagation here if we encounter an error
+	if isError(right) {
+		return right
+	}
+
+	modOps := []interface{}{
+		token.PLUSEQ,
+		token.MINUSEQ,
+		token.SLASHEQ,
+		token.ASTERISKEQ,
+	}
+
+	var val object.Object = evalInfixExpressionByType(inf.Operator, left, right)
+
+	if utils.InArray(inf.Operator, modOps) {
+		if val.Type() == object.ERROROBJ {
+			return val
+		}
+
+		switch inf.Left.(type) {
+		case *ast.Identifier:
+			env.Set(inf.Left.String(), val)
+		}
+	}
+
+	return val
+}
+
+func evalInfixExpressionByType(operator string, left object.Object, right object.Object) object.Object {
 	var l object.Object = left
 	var r object.Object = right
 	if left.Type() == object.IDENTIFIEROBJ {
@@ -422,47 +379,149 @@ func evalInfixExpression(operator string, left object.Object, right object.Objec
 	}
 }
 
+func evalArrayLiteral(al *ast.ArrayLiteral, env *object.Environment) object.Object {
+	elements := evalExpressions(al.Elements, env)
+
+	if len(elements) >= 1 {
+		for _, element := range elements {
+			if isError(element) {
+				return element
+			}
+		}
+	}
+	return &object.Array{Elements: elements}
+}
+
+func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) object.Object {
+	pairs := make(map[object.HashKey]object.HashPair)
+	for keyNode, valueNode := range node.Pairs {
+		key := Eval(keyNode, env)
+		if isError(key) {
+			return key
+		}
+		if key.Type() == object.IDENTIFIEROBJ {
+			key = key.(*object.Identifier).Value
+		}
+		hashKey, ok := key.(object.Hashable)
+		if !ok {
+			return newError("unusable as hash key: %s", key.Type())
+		}
+		value := Eval(valueNode, env)
+		if isError(value) {
+			return value
+		}
+		hashed := hashKey.HashKey()
+		pairs[hashed] = object.HashPair{Key: key, Value: value}
+	}
+	return &object.Hash{Pairs: pairs}
+}
+
+func evalIndexExpression(ie *ast.IndexExpression, env *object.Environment) object.Object {
+	left := Eval(ie.Left, env)
+	if isError(left) {
+		return left
+	}
+	index := Eval(ie.Index, env)
+	if isError(index) {
+		return index
+	}
+
+	if left.Type() == object.IDENTIFIEROBJ {
+		left = left.(*object.Identifier).Value
+	}
+	if index.Type() == object.IDENTIFIEROBJ {
+		index = index.(*object.Identifier).Value
+	}
+	switch {
+	case left.Type() == object.ARRAYOBJ && index.Type() == object.INTEGEROBJ:
+		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.HASHOBJ:
+		return evalHashIndexExpression(left, index)
+	default:
+		return newError("index operator not supported: %s", left.Type())
+	}
+}
+
+func evalArrayIndexExpression(array, index object.Object) object.Object {
+	arrayObject := array.(*object.Array)
+	idx := index.(*object.Integer).Value
+	max := int64(len(arrayObject.Elements) - 1)
+	if idx < 0 || idx > max {
+		return newError("array index out of bounds[0, %d]: %d", max, idx)
+	}
+	return arrayObject.Elements[idx]
+}
+
+func evalHashIndexExpression(hash, index object.Object) object.Object {
+	hashObject := hash.(*object.Hash)
+	key, ok := index.(object.Hashable)
+	if !ok {
+		return newError("unusable as hash key: %s", index.Type())
+	}
+	pair, ok := hashObject.Pairs[key.HashKey()]
+	if !ok {
+		return NULL
+	}
+	return pair.Value
+}
+
+func evalReturnStatement(rs *ast.ReturnStatement, env *object.Environment) object.Object {
+	val := Eval(rs.Value, env)
+	// stop propagation here if we encounter an error
+	if isError(val) {
+		return val
+	}
+
+	return &object.ReturnValue{Value: val}
+}
+
 func evalIntegerInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	l := left.(*object.Integer)
+	r := right.(*object.Integer)
+	lvalue := l.Value
+	rvalue := r.Value
+
 	switch operator {
 	// + - * /
 	case token.PLUS:
-		return evalPlusOperatorIntegerExpression(left, right)
+		return evalPlusOperatorIntegerExpression(lvalue, rvalue)
 	case token.MINUS:
-		return evalSubtractOperatorIntegerExpression(left, right)
+		return evalSubtractOperatorIntegerExpression(lvalue, rvalue)
 	case token.ASTERISK:
-		return evalMultiplyOperatorIntegerExpression(left, right)
+		return evalMultiplyOperatorIntegerExpression(lvalue, rvalue)
 	case token.SLASH:
-		return evalDivideOperatorIntegerExpression(left, right)
+		return evalDivideOperatorIntegerExpression(lvalue, rvalue)
 
 	// < <= > >=
 	case token.LT:
-		return evalLessThanOperatorIntegerExpression(left, right)
+		return nativeBoolToBooleanObject(lvalue < rvalue)
 	case token.LTEQ:
-		return evalLessThanEqualToOperatorIntegerExpression(left, right)
+		return nativeBoolToBooleanObject(lvalue <= rvalue)
 	case token.GT:
-		return evalGreaterThanOperatorIntegerExpression(left, right)
+		return nativeBoolToBooleanObject(lvalue > rvalue)
 	case token.GTEQ:
-		return evalGreaterThanEqualToOperatorIntegerExpression(left, right)
+		return nativeBoolToBooleanObject(lvalue >= rvalue)
 
 	// == !=
 	case token.EQ:
-		return evalEqualToOperatorIntegerExpression(left, right)
+		return nativeBoolToBooleanObject(lvalue == rvalue)
 	case token.NOTEQ:
-		return evalNotEqualToOperatorIntegerExpression(left, right)
+		return nativeBoolToBooleanObject(lvalue != rvalue)
 
 	// += -= *= /=
 	case token.PLUSEQ:
-		return evalPlusOperatorIntegerExpression(left, right)
+		return evalPlusOperatorIntegerExpression(lvalue, rvalue)
 	case token.MINUSEQ:
-		return evalSubtractOperatorIntegerExpression(left, right)
+		return evalSubtractOperatorIntegerExpression(lvalue, rvalue)
 	case token.ASTERISKEQ:
-		return evalMultiplyOperatorIntegerExpression(left, right)
+		return evalMultiplyOperatorIntegerExpression(lvalue, rvalue)
 	case token.SLASHEQ:
-		return evalDivideOperatorIntegerExpression(left, right)
+		return evalDivideOperatorIntegerExpression(lvalue, rvalue)
 
 	// ^
 	case token.POWER:
-		return evalPowerOperatorIntegerExpression(left, right)
+		val := int64(math.Pow(float64(lvalue), float64(rvalue)))
+		return &object.Integer{Value: val}
 
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
@@ -470,9 +529,6 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 }
 
 func evalDoubleInfixExpression(operator string, left object.Object, right object.Object) object.Object {
-	if left.Type() != object.DOUBLEOBJ || right.Type() != object.DOUBLEOBJ {
-		return newError("type mismatch: %s + %s", left.Type(), right.Type())
-	}
 
 	l := left.(*object.Double)
 	r := right.(*object.Double)
@@ -548,158 +604,10 @@ func evalPowerOperatorDoubleIntegerExpression(left object.Object, right object.O
 	return &object.Double{Value: val, Precision: precision}
 }
 
-func evalBangOperatorExpression(right object.Object) object.Object {
-	switch right {
-	case TRUE:
-		return FALSE
-	case FALSE:
-		return TRUE
-	case NULL:
-		return TRUE
-	default:
-		return FALSE
-	}
-}
-
-func evalPlusOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s + %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return &object.Integer{Value: lvalue + rvalue}
-}
-
-func evalSubtractOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s - %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return &object.Integer{Value: lvalue - rvalue}
-}
-
-func evalMultiplyOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s * %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return &object.Integer{Value: lvalue * rvalue}
-}
-
-func evalDivideOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s / %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	if rvalue == 0 {
-		return NAN
-	}
-
-	return &object.Integer{Value: lvalue / rvalue}
-}
-
-func evalLessThanOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s < %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return nativeBoolToBooleanObject(lvalue < rvalue)
-}
-
-func evalLessThanEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s <= %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return nativeBoolToBooleanObject(lvalue <= rvalue)
-}
-
-func evalGreaterThanOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s > %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return nativeBoolToBooleanObject(lvalue > rvalue)
-}
-
-func evalGreaterThanEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s >= %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return nativeBoolToBooleanObject(lvalue >= rvalue)
-}
-
-func evalEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s == %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return nativeBoolToBooleanObject(lvalue == rvalue)
-}
-
-func evalNotEqualToOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s != %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	return nativeBoolToBooleanObject(lvalue != rvalue)
-}
-
-func evalPowerOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
-	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
-		return newError("type mismatch: %s / %s", left.Type(), right.Type())
-	}
-
-	lvalue := left.(*object.Integer).Value
-	rvalue := right.(*object.Integer).Value
-
-	val := int64(math.Pow(float64(lvalue), float64(rvalue)))
-
-	return &object.Integer{Value: val}
-}
-
-func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	if right.Type() != object.INTEGEROBJ {
-		return newError("unknown operator: -%s", right.Type())
-	}
-	value := right.(*object.Integer).Value
-
-	return &object.Integer{Value: -value}
-}
-
 func evalBooleanInfixExpression(operator string, left object.Object, right object.Object) object.Object {
 	lvalue := left.(*object.Boolean).Value
 	rvalue := right.(*object.Boolean).Value
+
 	switch operator {
 	case token.NOTEQ:
 		return nativeBoolToBooleanObject(lvalue != rvalue)
@@ -708,6 +616,26 @@ func evalBooleanInfixExpression(operator string, left object.Object, right objec
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalPlusOperatorIntegerExpression(lvalue int64, rvalue int64) object.Object {
+	return &object.Integer{Value: lvalue + rvalue}
+}
+
+func evalSubtractOperatorIntegerExpression(lvalue int64, rvalue int64) object.Object {
+	return &object.Integer{Value: lvalue - rvalue}
+}
+
+func evalMultiplyOperatorIntegerExpression(lvalue int64, rvalue int64) object.Object {
+	return &object.Integer{Value: lvalue * rvalue}
+}
+
+func evalDivideOperatorIntegerExpression(lvalue int64, rvalue int64) object.Object {
+	if rvalue == 0 {
+		return NAN
+	}
+
+	return &object.Integer{Value: lvalue / rvalue}
 }
 
 func evalStringInfixExpression(operator string, left object.Object, right object.Object) object.Object {
