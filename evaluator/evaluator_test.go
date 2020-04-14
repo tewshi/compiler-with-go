@@ -31,6 +31,11 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"3 * 3 * 3 + 10", 37},
 		{"3 * (3 * 3) + 10", 37},
 		{"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50},
+
+		{"5 ^ 2", 25},
+		{"5 ^ -1", 0},
+		{"5 ^ 1 + 5", 10},
+		{"5 * 5 ^ 0", 5},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -208,6 +213,15 @@ func TestErrorHandling(t *testing.T) {
 		{
 			`{"name": "Monkey"}[fn(x) { x }];`,
 			"unusable as hash key: FUNCTION",
+		},
+
+		{
+			"5 ^ true;",
+			"type mismatch: INTEGER ^ BOOLEAN",
+		},
+		{
+			"5 ^ \"hello\";",
+			"type mismatch: INTEGER ^ STRING",
 		},
 	}
 	for _, tt := range tests {
