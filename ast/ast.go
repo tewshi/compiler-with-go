@@ -3,6 +3,8 @@ package ast
 import (
 	"bytes"
 	"monkey/token"
+	"monkey/utils"
+	"strconv"
 	"strings"
 )
 
@@ -174,7 +176,24 @@ func (il *IntegerLiteral) expressionNode() {}
 func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
 
 // String string representation of an integer
-func (il *IntegerLiteral) String() string { return il.Token.Literal }
+func (il *IntegerLiteral) String() string { return strconv.FormatInt(il.Value, 10) }
+
+// DoubleLiteral represents a double in a statement
+type DoubleLiteral struct {
+	Token token.Token // the token.INT token
+	Value float64
+}
+
+func (dl *DoubleLiteral) expressionNode() {}
+
+// TokenLiteral the literal value of the double token
+func (dl *DoubleLiteral) TokenLiteral() string { return dl.Token.Literal }
+
+// String string representation of an double
+func (dl *DoubleLiteral) String() string {
+	precision := utils.Precision(dl.Token.Literal)
+	return strconv.FormatFloat(dl.Value, 'f', precision, 64)
+}
 
 // PrefixExpression represents a prefix expression
 type PrefixExpression struct {
