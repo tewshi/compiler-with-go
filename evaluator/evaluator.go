@@ -443,7 +443,8 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 		return evalMultiplyOperatorIntegerExpression(left, right)
 	case token.SLASH:
 		return evalDivideOperatorIntegerExpression(left, right)
-	// < <= > >= == !=
+
+	// < <= > >=
 	case token.LT:
 		return evalLessThanOperatorIntegerExpression(left, right)
 	case token.LTEQ:
@@ -453,10 +454,15 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	case token.GTEQ:
 		return evalGreaterThanEqualToOperatorIntegerExpression(left, right)
 
+	// == !=
 	case token.EQ:
 		return evalEqualToOperatorIntegerExpression(left, right)
 	case token.NOTEQ:
 		return evalNotEqualToOperatorIntegerExpression(left, right)
+
+	// ^
+	case token.POWER:
+		return evalPowerOperatorIntegerExpression(left, right)
 
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
@@ -604,6 +610,35 @@ func evalNotEqualToOperatorIntegerExpression(left object.Object, right object.Ob
 	rvalue := right.(*object.Integer).Value
 
 	return nativeBoolToBooleanObject(lvalue != rvalue)
+}
+
+func evalPowerOperatorIntegerExpression(left object.Object, right object.Object) object.Object {
+	if left.Type() != object.INTEGEROBJ || right.Type() != object.INTEGEROBJ {
+		return newError("type mismatch: %s / %s", left.Type(), right.Type())
+	}
+
+	lvalue := left.(*object.Integer).Value
+	rvalue := right.(*object.Integer).Value
+
+	if rvalue == 0 {
+		return &object.Integer{Value: 1}
+	}
+	if rvalue == 1 {
+		return &object.Integer{Value: lvalue}
+	}
+
+	N := int(utils.Abs(rvalue))
+	P := lvalue
+
+	for i := 1; i < N; i++ {
+		lvalue *= P
+	}
+
+	if rvalue < 0 {
+		lvalue = 1 / lvalue
+	}
+
+	return &object.Integer{Value: lvalue}
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
