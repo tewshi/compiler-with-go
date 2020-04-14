@@ -42,6 +42,8 @@ const (
 	IDENT = "IDENT" // add, foobar, x, y, ...
 	// INT for integers
 	INT = "INT" // 1343456
+	// DOUBLE for integers
+	DOUBLE = "DOUBLE" // 13434.56
 	// BOOL for booleans
 	BOOL = "BOOL" // let x = false
 	// STRING for strings
@@ -87,6 +89,8 @@ const (
 	// ASTERISKEQ for asterisk equal to operator
 	ASTERISKEQ = "*="
 
+	// PERIOD for period symbol
+	PERIOD = "."
 	// COMMA for comma symbol
 	COMMA = ","
 	// SEMICOLON for semicolon symbol
