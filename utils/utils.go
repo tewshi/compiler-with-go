@@ -14,15 +14,6 @@ func InArray(needle interface{}, haystack []interface{}) bool {
 	return false
 }
 
-// Abs returns the absolute value of an integer
-func Abs(a int64) int64 {
-	if a < 0 {
-		return a * -1
-	}
-
-	return a
-}
-
 // Precision returns the precision of a double
 func Precision(s string) int {
 	parts := strings.Split(s, ".")
@@ -31,4 +22,21 @@ func Precision(s string) int {
 	}
 
 	return len(parts[1])
+}
+
+// MaxInt returns the maximum for a given set of integers
+func MaxInt(args ...int) int {
+	if len(args) == 0 {
+		return 0
+	}
+
+	max := args[0]
+
+	for i := 1; i < len(args); i++ {
+		if args[i] > max {
+			max = args[i]
+		}
+	}
+
+	return max
 }
