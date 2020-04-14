@@ -9,3 +9,12 @@ func InArray(needle interface{}, haystack []interface{}) bool {
 	}
 	return false
 }
+
+// Abs returns the absolute value of an integer
+func Abs(a int64) int64 {
+	if a < 0 {
+		return a * -1
+	}
+
+	return a
+}
