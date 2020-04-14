@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"monkey/object"
+	"strings"
 )
 
 var builtins = map[string]*object.Builtin{
@@ -10,6 +11,7 @@ var builtins = map[string]*object.Builtin{
 	"last":  &object.Builtin{Fn: _last},
 	"rest":  &object.Builtin{Fn: _rest},
 	"push":  &object.Builtin{Fn: _push},
+	"puts":  &object.Builtin{Fn: _puts},
 }
 
 func _len(args ...object.Object) object.Object {
@@ -123,8 +125,13 @@ func _push(args ...object.Object) object.Object {
 	return &object.Array{Elements: append(elements, val)}
 }
 
-// let map = fn(arr, f) { let iter = fn(arr, accumulated) { if (len(arr) == 0) { accumulated } else { iter(rest(arr), push(accumulated, f(first(arr)))); } }; iter(arr, []); };
+func _puts(args ...object.Object) object.Object {
 
-// let reduce = fn(arr, initial, f) {let iter = fn(arr, result) {if (len(arr) == 0) {result} else {iter(rest(arr), f(result, first(arr)));}};iter(arr, initial);};
+	value := []string{}
 
-// let sum = fn(arr) {reduce(arr, 0, fn(initial, el) { initial + el });};
+	for _, arg := range args {
+		value = append(value, arg.Inspect())
+	}
+
+	return &object.String{Value: strings.Join(value, "\n")}
+}
