@@ -24,6 +24,8 @@ const (
 	SUM // +
 	// PRODUCT just above sum in prcecedence
 	PRODUCT // *
+	// POWER just above product in prcecedence
+	POWER // ^
 	// PREFIX just above profuct in prcecedence
 	PREFIX // -X or !X
 	// CALL just above prefix in prcecedence
@@ -48,6 +50,7 @@ var precedences = map[token.Type]int{
 	token.MINUS:      SUM,
 	token.SLASH:      PRODUCT,
 	token.ASTERISK:   PRODUCT,
+	token.POWER:      POWER,
 	token.LPAREN:     CALL,
 	token.LBRACKET:   INDEX,
 }
@@ -104,6 +107,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.POWER, p.parseInfixExpression)
 
 	p.registerInfix(token.PLUSEQ, p.parseInfixExpression)
 	p.registerInfix(token.MINUSEQ, p.parseInfixExpression)
