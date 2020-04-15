@@ -8,6 +8,7 @@ import (
 	"monkey/lexer"
 	"monkey/object"
 	"monkey/parser"
+	"strings"
 )
 
 // PROMPT the text that shows on the console
@@ -42,19 +43,21 @@ const MONKEYFROWN = `         __,__
 `
 
 // Start is the main function that starts this repl
-func Start(in io.Reader, out io.Writer) {
+func Start(in io.Reader, out io.Writer, username string) {
 	// create the scanner
 	scanner := bufio.NewScanner(in)
 
 	// create the environment for storage
 	env := object.NewEnvironment()
 
+L:
 	for {
 		// print prompt: >>
 		fmt.Printf(PROMPT)
 		// advance to the next token
 		scanned := scanner.Scan()
 		if !scanned {
+			fmt.Printf("\nGoodbye %s\n", username)
 			return
 		}
 
@@ -77,6 +80,20 @@ func Start(in io.Reader, out io.Writer) {
 		// print our evaluated program
 		evaluated := evaluator.Eval(program, env)
 		if evaluated != nil {
+			line = strings.TrimSpace(line)
+			if (line == "quit()" || line == "exit()" || line == "quit" || line == "exit") && evaluated.Type() == object.ERROROBJ {
+				error := evaluated.(*object.Error)
+				switch error.Message {
+				case "identifier not found: quit", "identifier not found: exit":
+					if line == "quit()" || line == "exit()" {
+						fmt.Printf("Goodbye %s\n", username)
+						break L
+					}
+					fmt.Printf("use %s() or Ctrl-D (i.e. EOF) to exit\n", line)
+					continue L
+				}
+			}
+
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
 		}
