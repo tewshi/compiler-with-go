@@ -37,6 +37,7 @@ const (
 )
 
 // precedence table: it associates token types with their precedence
+// () [] -> . :: ! ~ & ++ -- * / % + - << >> < <= > >= == != & ^ | && || ?: = += -= *= /= %= &= |= ^= <<= >>= ,
 var precedences = map[token.Type]int{
 	token.PLUSEQ:     EQUALS,
 	token.MINUSEQ:    EQUALS,
@@ -52,6 +53,7 @@ var precedences = map[token.Type]int{
 	token.MINUS:      SUM,
 	token.SLASH:      PRODUCT,
 	token.ASTERISK:   PRODUCT,
+	token.MODULUS:    PRODUCT,
 	token.POWER:      POWER,
 	token.PERIOD:     PERIOD,
 	token.LPAREN:     CALL,
@@ -112,6 +114,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.POWER, p.parseInfixExpression)
 	p.registerInfix(token.PERIOD, p.parseInfixExpression)
+	p.registerInfix(token.MODULUS, p.parseInfixExpression)
 
 	p.registerInfix(token.PLUSEQ, p.parseInfixExpression)
 	p.registerInfix(token.MINUSEQ, p.parseInfixExpression)
