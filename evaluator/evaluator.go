@@ -336,6 +336,8 @@ func evalInfixExpression(inf *ast.InfixExpression, env *object.Environment) obje
 		case *ast.Identifier:
 			env.Set(inf.Left.String(), val)
 		}
+
+		return nil
 	}
 
 	return val
@@ -539,17 +541,13 @@ func evalDoubleInfixExpression(operator string, left object.Object, right object
 	switch operator {
 	// + - * /
 	case token.PLUS:
-		return &object.Double{Value: lvalue + rvalue, Precision: precision}
+		return evalPlusOperatorDoubleExpression(lvalue, rvalue, precision)
 	case token.MINUS:
-		return &object.Double{Value: lvalue - rvalue, Precision: precision}
+		return evalSubtractOperatorDoubleExpression(lvalue, rvalue, precision)
 	case token.ASTERISK:
-		product := lvalue * rvalue
-		precision := utils.MaxInt(precision, utils.Precision(fmt.Sprint(product)))
-		return &object.Double{Value: product, Precision: precision}
+		return evalMultiplyOperatorDoubleExpression(lvalue, rvalue, precision)
 	case token.SLASH:
-		div := lvalue / rvalue
-		precision := utils.MaxInt(precision, utils.Precision(fmt.Sprint(div)))
-		return &object.Double{Value: div, Precision: precision}
+		return evalDivideOperatorDoubleExpression(lvalue, rvalue, precision)
 
 	// < <= > >=
 	case token.LT:
@@ -566,6 +564,16 @@ func evalDoubleInfixExpression(operator string, left object.Object, right object
 		return nativeBoolToBooleanObject(lvalue == rvalue)
 	case token.NOTEQ:
 		return nativeBoolToBooleanObject(lvalue != rvalue)
+
+	// += -= *= /=
+	case token.PLUSEQ:
+		return evalPlusOperatorDoubleExpression(lvalue, rvalue, precision)
+	case token.MINUSEQ:
+		return evalSubtractOperatorDoubleExpression(lvalue, rvalue, precision)
+	case token.ASTERISKEQ:
+		return evalMultiplyOperatorDoubleExpression(lvalue, rvalue, precision)
+	case token.SLASHEQ:
+		return evalDivideOperatorDoubleExpression(lvalue, rvalue, precision)
 
 	// ^
 	case token.POWER:
@@ -631,11 +639,27 @@ func evalMultiplyOperatorIntegerExpression(lvalue int64, rvalue int64) object.Ob
 }
 
 func evalDivideOperatorIntegerExpression(lvalue int64, rvalue int64) object.Object {
-	if rvalue == 0 {
-		return NAN
-	}
-
 	return &object.Integer{Value: lvalue / rvalue}
+}
+
+func evalPlusOperatorDoubleExpression(lvalue float64, rvalue float64, precision int) object.Object {
+	return &object.Double{Value: lvalue + rvalue, Precision: precision}
+}
+
+func evalSubtractOperatorDoubleExpression(lvalue float64, rvalue float64, precision int) object.Object {
+	return &object.Double{Value: lvalue - rvalue, Precision: precision}
+}
+
+func evalMultiplyOperatorDoubleExpression(lvalue float64, rvalue float64, precision int) object.Object {
+	product := lvalue * rvalue
+	prec := utils.MaxInt(precision, utils.Precision(fmt.Sprint(product)))
+	return &object.Double{Value: product, Precision: prec}
+}
+
+func evalDivideOperatorDoubleExpression(lvalue float64, rvalue float64, precision int) object.Object {
+	div := lvalue / rvalue
+	prec := utils.MaxInt(precision, utils.Precision(fmt.Sprint(div)))
+	return &object.Double{Value: div, Precision: prec}
 }
 
 func evalStringInfixExpression(operator string, left object.Object, right object.Object) object.Object {
