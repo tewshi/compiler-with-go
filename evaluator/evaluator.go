@@ -361,6 +361,7 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		return evalBooleanInfixExpression(operator, l, r)
 	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
 		return evalStringInfixExpression(operator, l, r)
+
 	case operator == token.POWER:
 		switch {
 		case l.Type() == object.INTEGEROBJ && r.Type() == object.DOUBLEOBJ:
@@ -370,6 +371,7 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		default:
 			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 		}
+
 	case operator == token.MODULUS:
 		switch {
 		case l.Type() == object.INTEGEROBJ && r.Type() == object.DOUBLEOBJ:
@@ -379,6 +381,26 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		default:
 			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 		}
+
+	// + += - -= * *= / /=
+	// < <= > >=
+	// == !=
+	case operator == token.PLUS, operator == token.PLUSEQ, operator == token.MINUS,
+		operator == token.MINUSEQ, operator == token.ASTERISK, operator == token.ASTERISKEQ,
+		operator == token.SLASH, operator == token.SLASHEQ,
+		operator == token.LT, operator == token.LTEQ, operator == token.GT,
+		operator == token.GTEQ, operator == token.EQ, operator == token.NOTEQ:
+		switch {
+		case l.Type() == object.INTEGEROBJ && r.Type() == object.DOUBLEOBJ:
+			dl := &object.Double{Value: float64(l.(*object.Integer).Value), Precision: 0}
+			return evalDoubleInfixExpression(operator, dl, r)
+		case l.Type() == object.DOUBLEOBJ && r.Type() == object.INTEGEROBJ:
+			dr := &object.Double{Value: float64(r.(*object.Integer).Value), Precision: 0}
+			return evalDoubleInfixExpression(operator, l, dr)
+		default:
+			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
+		}
+
 	case l.Type() != r.Type():
 		return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 	case operator == token.EQ:
