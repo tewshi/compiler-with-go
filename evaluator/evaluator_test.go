@@ -100,6 +100,10 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"let x = 4.0;x ^ 2 == 16.0", true},
 		{"let x = 4;x ^ 2.0 == 16.0", true},
 		{"let x = 4;4.0 + x ^ 2.0 == 4.0 ^ 2.0 + 4.0", true},
+
+		{"let x = 4.0;x % 2.0 == 0.0", true},
+		{"2 % 4 * 5^2 - 2 / 4 == 50", true},
+		{"2.0 % 4.0 * 5.0^2.0 - 2.0 / 4.0 == 49.5", true},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)

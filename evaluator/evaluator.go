@@ -370,6 +370,15 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		default:
 			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 		}
+	case operator == token.MODULUS:
+		switch {
+		case l.Type() == object.INTEGEROBJ && r.Type() == object.DOUBLEOBJ:
+			return evalModulusOperatorDoubleIntegerExpression(l, r)
+		case l.Type() == object.DOUBLEOBJ && r.Type() == object.INTEGEROBJ:
+			return evalModulusOperatorDoubleIntegerExpression(l, r)
+		default:
+			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
+		}
 	case l.Type() != r.Type():
 		return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 	case operator == token.EQ:
@@ -484,14 +493,14 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	rvalue := r.Value
 
 	switch operator {
-	// + - * /
-	case token.PLUS:
+	// + += - -= * *= / /=
+	case token.PLUS, token.PLUSEQ:
 		return evalPlusOperatorIntegerExpression(lvalue, rvalue)
-	case token.MINUS:
+	case token.MINUS, token.MINUSEQ:
 		return evalSubtractOperatorIntegerExpression(lvalue, rvalue)
-	case token.ASTERISK:
+	case token.ASTERISK, token.ASTERISKEQ:
 		return evalMultiplyOperatorIntegerExpression(lvalue, rvalue)
-	case token.SLASH:
+	case token.SLASH, token.SLASHEQ:
 		return evalDivideOperatorIntegerExpression(lvalue, rvalue)
 
 	// < <= > >=
@@ -510,19 +519,12 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	case token.NOTEQ:
 		return nativeBoolToBooleanObject(lvalue != rvalue)
 
-	// += -= *= /=
-	case token.PLUSEQ:
-		return evalPlusOperatorIntegerExpression(lvalue, rvalue)
-	case token.MINUSEQ:
-		return evalSubtractOperatorIntegerExpression(lvalue, rvalue)
-	case token.ASTERISKEQ:
-		return evalMultiplyOperatorIntegerExpression(lvalue, rvalue)
-	case token.SLASHEQ:
-		return evalDivideOperatorIntegerExpression(lvalue, rvalue)
-
 	// ^
 	case token.POWER:
 		val := int64(math.Pow(float64(lvalue), float64(rvalue)))
+		return &object.Integer{Value: val}
+	case token.MODULUS:
+		val := int64(math.Mod(float64(lvalue), float64(rvalue)))
 		return &object.Integer{Value: val}
 
 	default:
@@ -539,14 +541,14 @@ func evalDoubleInfixExpression(operator string, left object.Object, right object
 	precision := utils.MaxInt(l.Precision, r.Precision)
 
 	switch operator {
-	// + - * /
-	case token.PLUS:
+	// + += - -= * *= / /=
+	case token.PLUS, token.PLUSEQ:
 		return evalPlusOperatorDoubleExpression(lvalue, rvalue, precision)
-	case token.MINUS:
+	case token.MINUS, token.MINUSEQ:
 		return evalSubtractOperatorDoubleExpression(lvalue, rvalue, precision)
-	case token.ASTERISK:
+	case token.ASTERISK, token.ASTERISKEQ:
 		return evalMultiplyOperatorDoubleExpression(lvalue, rvalue, precision)
-	case token.SLASH:
+	case token.SLASH, token.SLASHEQ:
 		return evalDivideOperatorDoubleExpression(lvalue, rvalue, precision)
 
 	// < <= > >=
@@ -565,19 +567,11 @@ func evalDoubleInfixExpression(operator string, left object.Object, right object
 	case token.NOTEQ:
 		return nativeBoolToBooleanObject(lvalue != rvalue)
 
-	// += -= *= /=
-	case token.PLUSEQ:
-		return evalPlusOperatorDoubleExpression(lvalue, rvalue, precision)
-	case token.MINUSEQ:
-		return evalSubtractOperatorDoubleExpression(lvalue, rvalue, precision)
-	case token.ASTERISKEQ:
-		return evalMultiplyOperatorDoubleExpression(lvalue, rvalue, precision)
-	case token.SLASHEQ:
-		return evalDivideOperatorDoubleExpression(lvalue, rvalue, precision)
-
-	// ^
+	// ^ %
 	case token.POWER:
 		return evalPowerOperatorDoubleIntegerExpression(left, right)
+	case token.MODULUS:
+		return evalModulusOperatorDoubleIntegerExpression(left, right)
 
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
@@ -606,6 +600,34 @@ func evalPowerOperatorDoubleIntegerExpression(left object.Object, right object.O
 	}
 
 	val := math.Pow(lvalue, rvalue)
+
+	precision := utils.Precision(fmt.Sprint(val))
+
+	return &object.Double{Value: val, Precision: precision}
+}
+
+func evalModulusOperatorDoubleIntegerExpression(left object.Object, right object.Object) object.Object {
+
+	if !((left.Type() != object.INTEGEROBJ || left.Type() != object.DOUBLEOBJ) && (right.Type() != object.INTEGEROBJ || right.Type() != object.DOUBLEOBJ)) {
+		return newError("type mismatch: %s ^ %s", left.Type(), right.Type())
+	}
+
+	var lvalue float64
+	var rvalue float64
+
+	if left.Type() == object.DOUBLEOBJ {
+		lvalue = left.(*object.Double).Value
+	} else {
+		lvalue = float64(left.(*object.Integer).Value)
+	}
+
+	if right.Type() == object.DOUBLEOBJ {
+		rvalue = right.(*object.Double).Value
+	} else {
+		rvalue = float64(right.(*object.Integer).Value)
+	}
+
+	val := math.Mod(lvalue, rvalue)
 
 	precision := utils.Precision(fmt.Sprint(val))
 
