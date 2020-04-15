@@ -62,6 +62,8 @@ const (
 	SLASH = "/"
 	// POWER for power operator
 	POWER = "^"
+	// MODULUS for modulus operator
+	MODULUS = "%"
 
 	// BANG for bang (not) operator
 	BANG = "!"
