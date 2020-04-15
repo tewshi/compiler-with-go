@@ -116,6 +116,8 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case '^':
 		tok = token.Token{Type: token.POWER, Literal: "^"}
+	case '%':
+		tok = token.Token{Type: token.MODULUS, Literal: "%"}
 	case '{':
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
