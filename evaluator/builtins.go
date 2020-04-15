@@ -12,6 +12,7 @@ var builtins = map[string]*object.Builtin{
 	"rest":  &object.Builtin{Fn: _rest},
 	"push":  &object.Builtin{Fn: _push},
 	"puts":  &object.Builtin{Fn: _puts},
+	"type":  &object.Builtin{Fn: _type},
 }
 
 func _len(args ...object.Object) object.Object {
@@ -134,4 +135,18 @@ func _puts(args ...object.Object) object.Object {
 	}
 
 	return &object.String{Value: strings.Join(value, "\n")}
+}
+
+func _type(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("wrong number of arguments. got=%d, want=1",
+			len(args))
+	}
+
+	var arg object.Object = args[0]
+	if arg.Type() == object.IDENTIFIEROBJ {
+		arg = arg.(*object.Identifier).Value
+	}
+
+	return &object.String{Value: strings.ToLower(string(arg.Type()))}
 }
