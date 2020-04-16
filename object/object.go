@@ -26,6 +26,8 @@ const (
 	NULLOBJ = "NULL"
 	// NANOBJ represents an nil object
 	NANOBJ = "NAN"
+	// COMMENTOBJ represents an nil object
+	COMMENTOBJ = "COMMENT"
 	// RETURNVALUEOBJ represents a return object
 	RETURNVALUEOBJ = "RETURN_VALUE"
 	// ERROROBJ represents an error object
@@ -203,6 +205,17 @@ func (i *Nan) Type() Type { return NANOBJ }
 
 // Inspect returns a readable string of the Nan value
 func (i *Nan) Inspect() string { return "NAN" }
+
+// Comment the comment type
+type Comment struct {
+	Value string
+}
+
+// Type returns the object type of this value
+func (c *Comment) Type() Type { return COMMENTOBJ }
+
+// Inspect returns a readable string of the comment value
+func (c *Comment) Inspect() string { return c.Value }
 
 // ReturnValue represents a return value
 type ReturnValue struct {

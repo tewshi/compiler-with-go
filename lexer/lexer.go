@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"bytes"
 	"monkey/token"
 	"strings"
 )
@@ -15,9 +16,18 @@ type Lexer struct {
 
 // NewLexer creates and returns a Lexer
 func NewLexer(input string) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: string(normalizeNewLine([]byte(input)))}
 	l.readChar()
 	return l
+}
+
+// normalizeNewLine normalizes \r\n (windows) and \r (mac) into \n (unix)
+func normalizeNewLine(lines []byte) []byte {
+	// replace CR LF: \r\n (windows) with LF: \n (unix)
+	lines = bytes.ReplaceAll(lines, []byte{13, 10}, []byte{10})
+	// replace CR: \r (mac) with LF: \n (unix)
+	lines = bytes.ReplaceAll(lines, []byte{13}, []byte{10})
+	return lines
 }
 
 func (l *Lexer) readChar() {
@@ -90,6 +100,9 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == '=' {
 			l.readChar()
 			tok = token.Token{Type: token.SLASHEQ, Literal: "/="}
+		} else if l.peekChar() == '/' {
+			tok.Type = token.COMMENT
+			tok.Literal = l.readComment()
 		} else {
 			tok = newToken(token.SLASH, l.ch)
 		}
@@ -206,6 +219,21 @@ func (l *Lexer) readNumber() string {
 // isDigit returns true if the char is a digit
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+// readComment reads and returns a line comment from the input
+func (l *Lexer) readComment() string {
+	position := l.position
+	for !isEndOfLine(l.ch) {
+		l.readChar()
+	}
+	return l.input[position:l.position]
+}
+
+// isDigit returns true if the char is a digit
+func isEndOfLine(ch byte) bool {
+	// ch == '\n' || ch == '\r' || ch == EOF
+	return ch == 0x0a || ch == 0x0d || ch == 0
 }
 
 // skipWhitespace skips whitespace from the input

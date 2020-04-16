@@ -85,6 +85,9 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 
+	// register prefic parse function for comments // ...
+	p.registerPrefix(token.COMMENT, p.parseCommentLiteral)
+
 	// register array literal parser
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	// register hash literal parser
@@ -238,6 +241,11 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 func (p *Parser) parseStringLiteral() ast.Expression {
 	// defer untrace(trace("parseStringLiteral"))
 	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseCommentLiteral() ast.Expression {
+	// defer untrace(trace("parseCommentLiteral"))
+	return &ast.CommentLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 func (p *Parser) parseArrayLiteral() ast.Expression {
@@ -526,6 +534,8 @@ func (p *Parser) parseFunctionParameters() ast.Identifiers {
 // parseStatement parses a statement
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
+	case token.COMMENT: // strip line comments from the program
+		return nil
 	case token.LET:
 		return p.parseLetStatement()
 	case token.RETURN:

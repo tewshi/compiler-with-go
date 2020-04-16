@@ -92,6 +92,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
+
+		/* Comments never get here, lexer recognizes them, but the parser strips them off
+		* case *ast.CommentLiteral:
+		* // we return nil coz we dont evaluate comments
+		* // return &object.Comment{Value: node.Value}
+		* return nil
+		 */
 	}
 	return nil
 }

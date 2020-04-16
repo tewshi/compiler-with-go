@@ -37,6 +37,11 @@ func TestNextToken(t *testing.T) {
 	9.11;
 	-9.11;
 	10%5;
+	//10%5;
+	// 10%5;
+	x ^ 9// 10%5;
+	x ^ 9;// 10%5;
+	// 10%5;x ^ 9;
 	`
 	tests := []struct {
 		expectedType    token.Type
@@ -182,6 +187,22 @@ func TestNextToken(t *testing.T) {
 		{token.MODULUS, "%"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
+
+		{token.COMMENT, "//10%5;"},
+		{token.COMMENT, "// 10%5;"},
+
+		{token.IDENT, "x"},
+		{token.POWER, "^"},
+		{token.INT, "9"},
+		{token.COMMENT, "// 10%5;"},
+
+		{token.IDENT, "x"},
+		{token.POWER, "^"},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
+		{token.COMMENT, "// 10%5;"},
+
+		{token.COMMENT, "// 10%5;x ^ 9;"},
 
 		{token.EOF, ""},
 	}
