@@ -423,3 +423,19 @@ func (ce *CallExpression) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+
+// CommentLiteral represents a line comment in a statement
+type CommentLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (cl *CommentLiteral) expressionNode() {}
+
+func (cl *CommentLiteral) statementNode() {}
+
+// TokenLiteral the literal value of the line comment token
+func (cl *CommentLiteral) TokenLiteral() string { return cl.Token.Literal }
+
+// String string representation of a line comment
+func (cl *CommentLiteral) String() string { return cl.Token.Literal }

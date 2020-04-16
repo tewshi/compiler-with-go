@@ -112,6 +112,9 @@ const (
 	// RBRACKET for right square bracket symbol
 	RBRACKET = "]"
 
+	// COMMENT for comments
+	COMMENT = "//"
+
 	// FUNCTION for function keyword
 	FUNCTION = "FUNCTION" // func add() {}
 	// LET for let keyword
