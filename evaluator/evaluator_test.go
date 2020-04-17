@@ -142,6 +142,15 @@ func TestIfElseExpressions(t *testing.T) {
 	}{
 		{"if (true) { 10 }", 10},
 		{"if (false) { 10 }", nil},
+		{"let x = 1; if (x == 1) { 10 }", 10},
+		{"let x = 1; if (x++ == 1) { 10 }", 10},
+		{"let x = 1; if (++x == 2) { 10 }", 10},
+		{"let x = 1; if (x-- == 1) { 10 }", 10},
+		{"let x = 1; if (--x == 0) { 10 }", 10},
+		{"let x = 1; x++; if (x == 2) { 10 }", 10},
+		{"let x = 1; ++x; if (x == 2) { 10 }", 10},
+		{"let x = 1; x--; if (x == 0) { 10 }", 10},
+		{"let x = 1; --x; if (x == 0) { 10 }", 10},
 		{"if (1) { 10 }", 10},
 		{"if (1 < 2) { 10 }", 10},
 		{"if (1 > 2) { 10 }", nil},
@@ -259,6 +268,74 @@ func TestErrorHandling(t *testing.T) {
 		{
 			"5 ^ \"hello\";",
 			"type mismatch: INTEGER ^ STRING",
+		},
+		{
+			`let x = 5; x += "Hello";`,
+			"type mismatch: INTEGER += STRING",
+		},
+		{
+			`let x = "5"; ++x;`,
+			"unknown operator: ++STRING",
+		},
+		{
+			`let x = "5"; --x;`,
+			"unknown operator: --STRING",
+		},
+		{
+			`let x = "5"; x++;`,
+			"unknown operator: STRING++",
+		},
+		{
+			`let x = "5"; x--;`,
+			"unknown operator: STRING--",
+		},
+		{
+			`let x = true; ++x;`,
+			"unknown operator: ++BOOLEAN",
+		},
+		{
+			`let x = true; --x;`,
+			"unknown operator: --BOOLEAN",
+		},
+		{
+			`let x = true; x++;`,
+			"unknown operator: BOOLEAN++",
+		},
+		{
+			`let x = true; x--;`,
+			"unknown operator: BOOLEAN--",
+		},
+		{
+			`let x = []; ++x;`,
+			"unknown operator: ++ARRAY",
+		},
+		{
+			`let x = []; --x;`,
+			"unknown operator: --ARRAY",
+		},
+		{
+			`let x = []; x++;`,
+			"unknown operator: ARRAY++",
+		},
+		{
+			`let x = []; x--;`,
+			"unknown operator: ARRAY--",
+		},
+		{
+			`let x = {}; ++x;`,
+			"unknown operator: ++HASH",
+		},
+		{
+			`let x = {}; --x;`,
+			"unknown operator: --HASH",
+		},
+		{
+			`let x = {}; x++;`,
+			"unknown operator: HASH++",
+		},
+		{
+			`let x = {}; x--;`,
+			"unknown operator: HASH--",
 		},
 	}
 	for _, tt := range tests {

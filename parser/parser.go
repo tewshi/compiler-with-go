@@ -5,6 +5,7 @@ import (
 	"monkey/ast"
 	"monkey/lexer"
 	"monkey/token"
+	"monkey/utils"
 	"strconv"
 )
 
@@ -37,7 +38,22 @@ const (
 )
 
 // precedence table: it associates token types with their precedence
-// () [] -> . :: ! ~ & ++ -- * / % + - << >> < <= > >= == != & ^ | && || ?: = += -= *= /= %= &= |= ^= <<= >>= ,
+//  1. () [] -> . ::     (function call, array index, member access)
+//  2. ! ~ & ++ --       (most unary ops: not, incr, decr, ...)
+//  3. * / %             (multiplication, division, modulo)
+//  4. + -               (addition, subtraction)
+//  5. << >>             (bitwise shift left, right)
+//  6. < <= > >=         (comparisons: lt, lt eq, gt, gt eq)
+//  7. == !=             (comparison: eq, not eq)
+//  8. &                 (bitwise AND)
+//  9. ^                 (bitwise exclusive OR, XOR)
+// 10. |                 (bitwise inclusive OR)
+// 11. &&                (logical AND)
+// 12. ||                (logical OR)
+// 13. ?:                (conditional, ternary)
+// 14. = += -= *= /= %=  (ltr assignment ops)
+// 14. &= |= ^= <<= >>=  (ltr assignment ops)
+// 15. ,                 (comma)
 var precedences = map[token.Type]int{
 	token.PLUSEQ:     EQUALS,
 	token.MINUSEQ:    EQUALS,
@@ -63,6 +79,7 @@ var precedences = map[token.Type]int{
 type (
 	prefixParseFn func() ast.Expression
 	infixParseFn  func(ast.Expression) ast.Expression
+	suffixParseFn func(ast.Expression) ast.Expression
 )
 
 // Parser the parser struct which contains a lexer
@@ -73,6 +90,7 @@ type Parser struct {
 	errors         []string
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
+	suffixParseFns map[token.Type]suffixParseFn
 }
 
 // NewParser given a lexer, creates and returns a new parser
@@ -83,6 +101,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.Type]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.DOUBLE, p.parseDoubleLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 
 	// register prefic parse function for comments // ...
@@ -95,6 +114,8 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 
 	// register boolean parser
 	p.registerPrefix(token.TRUE, p.parseBoolean)
@@ -134,6 +155,11 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+
+	// register suffix parse function for all of our suffix operators
+	p.suffixParseFns = make(map[token.Type]suffixParseFn)
+	p.registerSuffix(token.INCREMENT, p.parseSuffixExpression)
+	p.registerSuffix(token.DECREMENT, p.parseSuffixExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -206,6 +232,17 @@ func (p *Parser) noInfixParseFnError(t token.Type, left string, right string) {
 	p.errors = append(p.errors, msg)
 }
 
+// registerSuffix registers a suffix parser for a token type
+func (p *Parser) registerSuffix(tokenType token.Type, fn suffixParseFn) {
+	p.suffixParseFns[tokenType] = fn
+}
+
+// noSuffixParseFnError sets the error for a suffix expression that has no registered suffix parser
+func (p *Parser) noSuffixParseFnError(t token.Type) {
+	msg := fmt.Sprintf("no suffix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
 // Errors returns the list of errors
 func (p *Parser) Errors() []string {
 	return p.errors
@@ -221,20 +258,48 @@ func (p *Parser) peekError(t token.Type) {
 
 // parseIdentifier parses the current token as an identifier
 func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifier := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	switch p.peekToken.Type {
+	case token.INCREMENT, token.DECREMENT:
+		suffix := p.suffixParseFns[p.peekToken.Type]
+		if suffix == nil {
+			p.noSuffixParseFnError(p.peekToken.Type)
+			return nil
+		}
+		p.nextToken()
+
+		return suffix(identifier)
+	}
+
+	return identifier
 }
 
 // parseIntegerLiteral parses the current token as an integer literal
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	// defer untrace(trace("parseIntegerLiteral"))
-	lit := &ast.IntegerLiteral{Token: p.curToken}
 	value, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	lit.Value = value
+	lit := &ast.IntegerLiteral{Token: p.curToken, Value: value}
+	return lit
+}
+
+// parseDoubleLiteral parses the current token as a double literal
+func (p *Parser) parseDoubleLiteral() ast.Expression {
+	// defer untrace(trace("parseDoubleLiteral"))
+	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as double", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	precision := utils.Precision(p.curToken.Literal)
+	lit := &ast.DoubleLiteral{Token: p.curToken, Precision: precision, Value: value}
 	return lit
 }
 
@@ -343,6 +408,37 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	// defer untrace(trace("parseInfixExpression"))
+
+	modOps := []interface{}{
+		token.PLUSEQ,
+		token.MINUSEQ,
+		token.SLASHEQ,
+		token.ASTERISKEQ,
+	}
+
+	if utils.InArray(p.curToken.Literal, modOps) {
+		var leftType string
+
+		switch left.(type) {
+		case *ast.IntegerLiteral:
+			leftType = token.INT
+		case *ast.DoubleLiteral:
+			leftType = token.DOUBLE
+		case *ast.StringLiteral:
+			leftType = token.STRING
+		case *ast.Boolean:
+			leftType = token.BOOL
+		default:
+			leftType = token.ILLEGAL
+		}
+
+		if _, ok := left.(*ast.Identifier); !ok {
+			msg := fmt.Sprintf("the infix operator %s requires %s on the left, %s found", p.curToken.Literal, token.IDENT, leftType)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+	}
+
 	expression := &ast.InfixExpression{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
@@ -360,29 +456,40 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	expression.Right = p.parseExpression(precedence)
 
-	if expression.Operator == token.PERIOD {
-		l, okl := expression.Left.(*ast.IntegerLiteral)
-		r, okr := expression.Right.(*ast.IntegerLiteral)
-		if !(okl && okr) {
-			p.noInfixParseFnError(token.PERIOD, expression.Left.TokenLiteral(), expression.Right.TokenLiteral())
-			return nil
-		}
+	// if expression.Operator == token.PERIOD {
+	// 	l, okl := expression.Left.(*ast.IntegerLiteral)
+	// 	r, okr := expression.Right.(*ast.IntegerLiteral)
+	// 	if !(okl && okr) {
+	// 		p.noInfixParseFnError(token.PERIOD, expression.Left.TokenLiteral(), expression.Right.TokenLiteral())
+	// 		return nil
+	// 	}
 
-		literal := fmt.Sprintf("%s%s%s", l.TokenLiteral(), token.PERIOD, r.TokenLiteral())
+	// 	literal := fmt.Sprintf("%s%s%s", l.TokenLiteral(), token.PERIOD, r.TokenLiteral())
 
-		precision := len(r.TokenLiteral())
+	// 	precision := len(r.TokenLiteral())
 
-		double := &ast.DoubleLiteral{Token: token.Token{Literal: literal, Type: token.DOUBLE}, Precision: precision}
+	// 	double := &ast.DoubleLiteral{Token: token.Token{Literal: literal, Type: token.DOUBLE}, Precision: precision}
 
-		value, err := strconv.ParseFloat(literal, 64)
-		if err != nil {
-			msg := fmt.Sprintf("could not parse %q as double", literal)
-			p.errors = append(p.errors, msg)
-			return nil
-		}
-		double.Value = value
+	// 	value, err := strconv.ParseFloat(literal, 64)
+	// 	if err != nil {
+	// 		msg := fmt.Sprintf("could not parse %q as double", literal)
+	// 		p.errors = append(p.errors, msg)
+	// 		return nil
+	// 	}
+	// 	double.Value = value
 
-		return double
+	// 	return double
+	// }
+	return expression
+}
+
+// parseSuffixExpression parses the current token as a suffix expression
+func (p *Parser) parseSuffixExpression(left ast.Expression) ast.Expression {
+	// defer untrace(trace("parseSuffixExpression"))
+	expression := &ast.SuffixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
 	}
 	return expression
 }

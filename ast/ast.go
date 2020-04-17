@@ -194,7 +194,7 @@ func (dl *DoubleLiteral) String() string { return strconv.FormatFloat(dl.Value, 
 
 // PrefixExpression represents a prefix expression
 type PrefixExpression struct {
-	Token    token.Token // The prefix token, e.g. ! or -
+	Token    token.Token // The prefix token, e.g. !x or -x or ++x or --x
 	Operator string
 	Right    Expression
 }
@@ -210,6 +210,28 @@ func (pe *PrefixExpression) String() string {
 	out.WriteString("(")
 	out.WriteString(pe.Operator)
 	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+	return out.String()
+}
+
+// SuffixExpression represents a suffix expression
+type SuffixExpression struct {
+	Token    token.Token // The suffix token, e.g. x++ or x--
+	Operator string
+	Left     Expression
+}
+
+func (se *SuffixExpression) expressionNode() {}
+
+// TokenLiteral the literal value of the suffix expression token
+func (se *SuffixExpression) TokenLiteral() string { return se.Token.Literal }
+
+// String string representation of a suffix expression
+func (se *SuffixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(se.Left.String())
+	out.WriteString(se.Operator)
 	out.WriteString(")")
 	return out.String()
 }

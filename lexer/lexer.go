@@ -3,6 +3,7 @@ package lexer
 import (
 	"bytes"
 	"monkey/token"
+	"strconv"
 	"strings"
 )
 
@@ -79,6 +80,9 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == '=' {
 			l.readChar()
 			tok = token.Token{Type: token.PLUSEQ, Literal: "+="}
+		} else if l.peekChar() == '+' {
+			l.readChar()
+			tok = token.Token{Type: token.INCREMENT, Literal: "++"}
 		} else {
 			tok = newToken(token.PLUS, l.ch)
 		}
@@ -86,6 +90,9 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == '=' {
 			l.readChar()
 			tok = token.Token{Type: token.MINUSEQ, Literal: "-="}
+		} else if l.peekChar() == '-' {
+			l.readChar()
+			tok = token.Token{Type: token.DECREMENT, Literal: "--"}
 		} else {
 			tok = newToken(token.MINUS, l.ch)
 		}
@@ -151,8 +158,21 @@ func (l *Lexer) NextToken() token.Token {
 			tok.LookupIdent()
 			return tok
 		} else if isDigit(l.ch) {
+			position := l.position
 			tok.Literal = l.readNumber()
-			tok.Type = token.INT
+			// for doubles
+			if l.ch == '.' {
+				l.readChar()
+				if _, err := strconv.ParseInt(l.readNumber(), 10, 64); err == nil {
+					tok.Literal = l.input[position:l.position]
+					tok.Type = token.DOUBLE
+				} else {
+					tok.Literal += "." + l.NextToken().Literal
+					tok.Type = token.ILLEGAL
+				}
+			} else {
+				tok.Type = token.INT
+			}
 			return tok
 		}
 		tok = newToken(token.ILLEGAL, l.ch)

@@ -42,6 +42,10 @@ func TestNextToken(t *testing.T) {
 	x ^ 9// 10%5;
 	x ^ 9;// 10%5;
 	// 10%5;x ^ 9;
+	++x;
+	x++;
+	--x;
+	x--;
 	`
 	tests := []struct {
 		expectedType    token.Type
@@ -172,15 +176,11 @@ func TestNextToken(t *testing.T) {
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
 
-		{token.INT, "9"},
-		{token.PERIOD, "."},
-		{token.INT, "11"},
+		{token.DOUBLE, "9.11"},
 		{token.SEMICOLON, ";"},
 
 		{token.MINUS, "-"},
-		{token.INT, "9"},
-		{token.PERIOD, "."},
-		{token.INT, "11"},
+		{token.DOUBLE, "9.11"},
 		{token.SEMICOLON, ";"},
 
 		{token.INT, "10"},
@@ -203,6 +203,22 @@ func TestNextToken(t *testing.T) {
 		{token.COMMENT, "// 10%5;"},
 
 		{token.COMMENT, "// 10%5;x ^ 9;"},
+
+		{token.INCREMENT, "++"},
+		{token.IDENT, "x"},
+		{token.SEMICOLON, ";"},
+
+		{token.IDENT, "x"},
+		{token.INCREMENT, "++"},
+		{token.SEMICOLON, ";"},
+
+		{token.DECREMENT, "--"},
+		{token.IDENT, "x"},
+		{token.SEMICOLON, ";"},
+
+		{token.IDENT, "x"},
+		{token.DECREMENT, "--"},
+		{token.SEMICOLON, ";"},
 
 		{token.EOF, ""},
 	}

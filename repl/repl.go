@@ -12,7 +12,7 @@ import (
 )
 
 // PROMPT the text that shows on the console
-const PROMPT = ">> "
+const PROMPT = "mk>> "
 
 // MONKEYSMILE monkey face meme
 const MONKEYSMILE = `         __,__

@@ -39,13 +39,13 @@ const (
 	EOF = "EOF"
 
 	// IDENT for identifiers
-	IDENT = "IDENT" // add, foobar, x, y, ...
+	IDENT = "IDENTIFIER" // add, foobar, x, y, ...
 	// INT for integers
-	INT = "INT" // 1343456
+	INT = "INTEGER" // 1343456
 	// DOUBLE for integers
 	DOUBLE = "DOUBLE" // 13434.56
 	// BOOL for booleans
-	BOOL = "BOOL" // let x = false
+	BOOL = "BOOLEAN" // let x = false
 	// STRING for strings
 	STRING = "STRING" // let x = "hello, world"
 
@@ -67,6 +67,10 @@ const (
 
 	// BANG for bang (not) operator
 	BANG = "!"
+	// INCREMENT for increment operator
+	INCREMENT = "++"
+	// DECREMENT for decrement operator
+	DECREMENT = "--"
 
 	// EQ for greater equal to operator
 	EQ = "=="
