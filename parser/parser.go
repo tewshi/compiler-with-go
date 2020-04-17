@@ -15,12 +15,16 @@ const (
 	_ int = iota
 	// LOWEST precedence
 	LOWEST
+	// INPLACE precedence
+	INPLACE
+	// LOGICALOR
+	LOGICALOR // ||
+	// LOGICALAND
+	LOGICALAND // &&
 	// EQUALS just above lowest in prcecedence
 	EQUALS // ==
 	// LESSGREATER just above equals in prcecedence
-	LESSGREATER // > or <
-	// LESSGREATEREQUALS just above lowest in prcecedence
-	LESSGREATEREQUALS // <= >=
+	LESSGREATER // < <= >= >
 	// SUM just above less than or greater than in prcecedence
 	SUM // +
 	// PRODUCT just above sum in prcecedence
@@ -55,16 +59,18 @@ const (
 // 14. &= |= ^= <<= >>=  (ltr assignment ops)
 // 15. ,                 (comma)
 var precedences = map[token.Type]int{
-	token.PLUSEQ:     EQUALS,
-	token.MINUSEQ:    EQUALS,
-	token.SLASHEQ:    EQUALS,
-	token.ASTERISKEQ: EQUALS,
+	token.PLUSEQ:     INPLACE,
+	token.MINUSEQ:    INPLACE,
+	token.SLASHEQ:    INPLACE,
+	token.ASTERISKEQ: INPLACE,
+	token.OR:         LOGICALOR,
+	token.AND:        LOGICALAND,
 	token.EQ:         EQUALS,
 	token.NOTEQ:      EQUALS,
 	token.LT:         LESSGREATER,
 	token.GT:         LESSGREATER,
-	token.LTEQ:       LESSGREATEREQUALS,
-	token.GTEQ:       LESSGREATEREQUALS,
+	token.LTEQ:       LESSGREATER,
+	token.GTEQ:       LESSGREATER,
 	token.PLUS:       SUM,
 	token.MINUS:      SUM,
 	token.SLASH:      PRODUCT,
@@ -147,6 +153,9 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.registerInfix(token.EQ, p.parseInfixExpression)
 	p.registerInfix(token.NOTEQ, p.parseInfixExpression)
+
+	p.registerInfix(token.AND, p.parseInfixExpression)
+	p.registerInfix(token.OR, p.parseInfixExpression)
 
 	p.registerInfix(token.LTEQ, p.parseInfixExpression)
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
@@ -456,30 +465,6 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	expression.Right = p.parseExpression(precedence)
 
-	// if expression.Operator == token.PERIOD {
-	// 	l, okl := expression.Left.(*ast.IntegerLiteral)
-	// 	r, okr := expression.Right.(*ast.IntegerLiteral)
-	// 	if !(okl && okr) {
-	// 		p.noInfixParseFnError(token.PERIOD, expression.Left.TokenLiteral(), expression.Right.TokenLiteral())
-	// 		return nil
-	// 	}
-
-	// 	literal := fmt.Sprintf("%s%s%s", l.TokenLiteral(), token.PERIOD, r.TokenLiteral())
-
-	// 	precision := len(r.TokenLiteral())
-
-	// 	double := &ast.DoubleLiteral{Token: token.Token{Literal: literal, Type: token.DOUBLE}, Precision: precision}
-
-	// 	value, err := strconv.ParseFloat(literal, 64)
-	// 	if err != nil {
-	// 		msg := fmt.Sprintf("could not parse %q as double", literal)
-	// 		p.errors = append(p.errors, msg)
-	// 		return nil
-	// 	}
-	// 	double.Value = value
-
-	// 	return double
-	// }
 	return expression
 }
 
