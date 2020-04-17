@@ -433,7 +433,7 @@ func TestStringConcatenation(t *testing.T) {
 	}
 }
 
-func TestStringComparism(t *testing.T) {
+func TestStringComparison(t *testing.T) {
 
 	tests := []struct {
 		input    string
