@@ -408,6 +408,37 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	// defer untrace(trace("parseInfixExpression"))
+
+	modOps := []interface{}{
+		token.PLUSEQ,
+		token.MINUSEQ,
+		token.SLASHEQ,
+		token.ASTERISKEQ,
+	}
+
+	if utils.InArray(p.curToken.Literal, modOps) {
+		var leftType string
+
+		switch left.(type) {
+		case *ast.IntegerLiteral:
+			leftType = token.INT
+		case *ast.DoubleLiteral:
+			leftType = token.DOUBLE
+		case *ast.StringLiteral:
+			leftType = token.STRING
+		case *ast.Boolean:
+			leftType = token.BOOL
+		default:
+			leftType = token.ILLEGAL
+		}
+
+		if _, ok := left.(*ast.Identifier); !ok {
+			msg := fmt.Sprintf("the infix operator %s requires %s on the left, %s found", p.curToken.Literal, token.IDENT, leftType)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+	}
+
 	expression := &ast.InfixExpression{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
