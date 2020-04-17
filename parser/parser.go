@@ -5,6 +5,7 @@ import (
 	"monkey/ast"
 	"monkey/lexer"
 	"monkey/token"
+	"monkey/utils"
 	"strconv"
 )
 
@@ -85,6 +86,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.Type]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.DOUBLE, p.parseDoubleLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 
 	// register prefic parse function for comments // ...
@@ -261,14 +263,28 @@ func (p *Parser) parseIdentifier() ast.Expression {
 // parseIntegerLiteral parses the current token as an integer literal
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	// defer untrace(trace("parseIntegerLiteral"))
-	lit := &ast.IntegerLiteral{Token: p.curToken}
 	value, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	lit.Value = value
+	lit := &ast.IntegerLiteral{Token: p.curToken, Value: value}
+	return lit
+}
+
+// parseDoubleLiteral parses the current token as a double literal
+func (p *Parser) parseDoubleLiteral() ast.Expression {
+	// defer untrace(trace("parseDoubleLiteral"))
+	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as double", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	fmt.Println(value)
+	precision := utils.Precision(p.curToken.Literal)
+	lit := &ast.DoubleLiteral{Token: p.curToken, Precision: precision, Value: value}
 	return lit
 }
 
@@ -394,30 +410,30 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	expression.Right = p.parseExpression(precedence)
 
-	if expression.Operator == token.PERIOD {
-		l, okl := expression.Left.(*ast.IntegerLiteral)
-		r, okr := expression.Right.(*ast.IntegerLiteral)
-		if !(okl && okr) {
-			p.noInfixParseFnError(token.PERIOD, expression.Left.TokenLiteral(), expression.Right.TokenLiteral())
-			return nil
-		}
+	// if expression.Operator == token.PERIOD {
+	// 	l, okl := expression.Left.(*ast.IntegerLiteral)
+	// 	r, okr := expression.Right.(*ast.IntegerLiteral)
+	// 	if !(okl && okr) {
+	// 		p.noInfixParseFnError(token.PERIOD, expression.Left.TokenLiteral(), expression.Right.TokenLiteral())
+	// 		return nil
+	// 	}
 
-		literal := fmt.Sprintf("%s%s%s", l.TokenLiteral(), token.PERIOD, r.TokenLiteral())
+	// 	literal := fmt.Sprintf("%s%s%s", l.TokenLiteral(), token.PERIOD, r.TokenLiteral())
 
-		precision := len(r.TokenLiteral())
+	// 	precision := len(r.TokenLiteral())
 
-		double := &ast.DoubleLiteral{Token: token.Token{Literal: literal, Type: token.DOUBLE}, Precision: precision}
+	// 	double := &ast.DoubleLiteral{Token: token.Token{Literal: literal, Type: token.DOUBLE}, Precision: precision}
 
-		value, err := strconv.ParseFloat(literal, 64)
-		if err != nil {
-			msg := fmt.Sprintf("could not parse %q as double", literal)
-			p.errors = append(p.errors, msg)
-			return nil
-		}
-		double.Value = value
+	// 	value, err := strconv.ParseFloat(literal, 64)
+	// 	if err != nil {
+	// 		msg := fmt.Sprintf("could not parse %q as double", literal)
+	// 		p.errors = append(p.errors, msg)
+	// 		return nil
+	// 	}
+	// 	double.Value = value
 
-		return double
-	}
+	// 	return double
+	// }
 	return expression
 }
 
