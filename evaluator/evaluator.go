@@ -69,6 +69,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.InfixExpression:
 		return evalInfixExpression(node, env)
 
+	case *ast.SuffixExpression:
+		return evalSuffixExpression(node, env)
+
 	case *ast.ArrayLiteral:
 		return evalArrayLiteral(node, env)
 
@@ -261,20 +264,27 @@ func isTruthy(obj object.Object) bool {
 }
 
 func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) object.Object {
-	r := Eval(pref.Right, env)
+	right := Eval(pref.Right, env)
 	// stop propagation here if we encounter an error
-	if isError(r) {
-		return r
+	if isError(right) {
+		return right
 	}
 
-	if r.Type() == object.IDENTIFIEROBJ {
-		r = r.(*object.Identifier).Value
+	r := right
+	isIdentifier := false
+	var identifier string
+
+	if right.Type() == object.IDENTIFIEROBJ {
+		right := right.(*object.Identifier)
+		r = right.Value
+		isIdentifier = true
+		identifier = right.Name
 	}
 
 	switch pref.Operator {
-	case "!":
+	case token.BANG:
 		return evalBangOperatorExpression(r)
-	case "-":
+	case token.MINUS:
 		switch {
 		case r.Type() == object.INTEGEROBJ:
 			return evalMinusPrefixOperatorExpression(r)
@@ -283,6 +293,48 @@ func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) o
 		default:
 			return newError("unknown operator: %s%s", pref.Operator, r.Type())
 		}
+	case token.INCREMENT:
+
+		var result object.Object
+
+		switch {
+		case isIdentifier && r.Type() == object.INTEGEROBJ:
+			result = evalIncrementOperatorExpression(r)
+		case isIdentifier && r.Type() == object.DOUBLEOBJ:
+			result = evalIncrementOperatorExpression(r)
+		default:
+			result = newError("unknown operator: %s%s", pref.Operator, r.Type())
+		}
+
+		if result.Type() == object.ERROROBJ {
+			return result
+		}
+
+		env.Set(identifier, result)
+
+		return result
+
+	case token.DECREMENT:
+
+		var result object.Object
+
+		switch {
+		case isIdentifier && r.Type() == object.INTEGEROBJ:
+			result = evalDecrementOperatorExpression(r)
+		case isIdentifier && r.Type() == object.DOUBLEOBJ:
+			result = evalDecrementOperatorExpression(r)
+		default:
+			result = newError("unknown operator: %s%s", pref.Operator, r.Type())
+		}
+
+		if result.Type() == object.ERROROBJ {
+			return result
+		}
+
+		env.Set(identifier, result)
+
+		return result
+
 	default:
 		return newError("unknown operator: %s%s", pref.Operator, r.Type())
 	}
@@ -309,6 +361,30 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	default:
 		value := right.(*object.Integer).Value
 		return &object.Integer{Value: -value}
+	}
+}
+
+func evalIncrementOperatorExpression(right object.Object) object.Object {
+	switch right.Type() {
+	case object.DOUBLEOBJ:
+		r := right.(*object.Double)
+		value := r.Value
+		return evalPlusOperatorDoubleExpression(value, 1, r.Precision)
+	default:
+		value := right.(*object.Integer).Value
+		return evalPlusOperatorIntegerExpression(value, 1)
+	}
+}
+
+func evalDecrementOperatorExpression(right object.Object) object.Object {
+	switch right.Type() {
+	case object.DOUBLEOBJ:
+		r := right.(*object.Double)
+		value := r.Value
+		return evalSubtractOperatorDoubleExpression(value, 1, r.Precision)
+	default:
+		value := right.(*object.Integer).Value
+		return evalSubtractOperatorIntegerExpression(value, 1)
 	}
 }
 
@@ -416,6 +492,74 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		return nativeBoolToBooleanObject(l != r)
 	default:
 		return newError("unknown operator: %s %s %s", l.Type(), operator, r.Type())
+	}
+}
+
+func evalSuffixExpression(suf *ast.SuffixExpression, env *object.Environment) object.Object {
+	left := Eval(suf.Left, env)
+	// stop propagation here if we encounter an error
+	if isError(left) {
+		return left
+	}
+
+	l := left
+	operator := suf.Operator
+	isIdentifier := false
+	var identifier string
+
+	if left.Type() == object.IDENTIFIEROBJ {
+		left := left.(*object.Identifier)
+		l = left.Value
+		isIdentifier = true
+		identifier = left.Name
+	}
+
+	switch operator {
+
+	case token.INCREMENT:
+
+		var result object.Object
+
+		switch {
+		case isIdentifier && l.Type() == object.INTEGEROBJ:
+			result = evalIncrementOperatorExpression(l)
+		case isIdentifier && l.Type() == object.DOUBLEOBJ:
+			result = evalIncrementOperatorExpression(l)
+		default:
+			result = newError("unknown operator: %s%s", l.Type(), operator)
+		}
+
+		if result.Type() == object.ERROROBJ {
+			return result
+		}
+
+		env.Set(identifier, result)
+
+		return l
+
+	case token.DECREMENT:
+
+		var result object.Object
+
+		switch {
+		case isIdentifier && l.Type() == object.INTEGEROBJ:
+			result = evalDecrementOperatorExpression(l)
+		case isIdentifier && l.Type() == object.DOUBLEOBJ:
+			result = evalDecrementOperatorExpression(l)
+		default:
+			result = newError("unknown operator: %s%s", l.Type(), operator)
+		}
+
+		if result.Type() == object.ERROROBJ {
+			return result
+		}
+
+		env.Set(identifier, result)
+
+		return l
+
+	default:
+		return newError("unknown operator: %s %s %s", l.Type(), operator, l.Type())
 	}
 }
 
