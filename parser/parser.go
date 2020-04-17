@@ -63,6 +63,7 @@ var precedences = map[token.Type]int{
 type (
 	prefixParseFn func() ast.Expression
 	infixParseFn  func(ast.Expression) ast.Expression
+	suffixParseFn func(ast.Expression) ast.Expression
 )
 
 // Parser the parser struct which contains a lexer
@@ -73,6 +74,7 @@ type Parser struct {
 	errors         []string
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
+	suffixParseFns map[token.Type]suffixParseFn
 }
 
 // NewParser given a lexer, creates and returns a new parser
@@ -95,6 +97,8 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 
 	// register boolean parser
 	p.registerPrefix(token.TRUE, p.parseBoolean)
@@ -134,6 +138,11 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+
+	// register suffix parse function for all of our suffix operators
+	p.suffixParseFns = make(map[token.Type]suffixParseFn)
+	p.registerSuffix(token.INCREMENT, p.parseSuffixExpression)
+	p.registerSuffix(token.DECREMENT, p.parseSuffixExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -206,6 +215,17 @@ func (p *Parser) noInfixParseFnError(t token.Type, left string, right string) {
 	p.errors = append(p.errors, msg)
 }
 
+// registerSuffix registers a suffix parser for a token type
+func (p *Parser) registerSuffix(tokenType token.Type, fn suffixParseFn) {
+	p.suffixParseFns[tokenType] = fn
+}
+
+// noSuffixParseFnError sets the error for a suffix expression that has no registered suffix parser
+func (p *Parser) noSuffixParseFnError(t token.Type) {
+	msg := fmt.Sprintf("no suffix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
 // Errors returns the list of errors
 func (p *Parser) Errors() []string {
 	return p.errors
@@ -221,7 +241,21 @@ func (p *Parser) peekError(t token.Type) {
 
 // parseIdentifier parses the current token as an identifier
 func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifier := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	switch p.peekToken.Type {
+	case token.INCREMENT, token.DECREMENT:
+		suffix := p.suffixParseFns[p.peekToken.Type]
+		if suffix == nil {
+			p.noSuffixParseFnError(p.peekToken.Type)
+			return nil
+		}
+		p.nextToken()
+
+		return suffix(identifier)
+	}
+
+	return identifier
 }
 
 // parseIntegerLiteral parses the current token as an integer literal
@@ -383,6 +417,17 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		double.Value = value
 
 		return double
+	}
+	return expression
+}
+
+// parseSuffixExpression parses the current token as a suffix expression
+func (p *Parser) parseSuffixExpression(left ast.Expression) ast.Expression {
+	// defer untrace(trace("parseSuffixExpression"))
+	expression := &ast.SuffixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
 	}
 	return expression
 }
