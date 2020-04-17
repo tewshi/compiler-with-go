@@ -67,6 +67,10 @@ const (
 
 	// BANG for bang (not) operator
 	BANG = "!"
+	// INCREMENT for increment operator
+	INCREMENT = "++"
+	// DECREMENT for decrement operator
+	DECREMENT = "--"
 
 	// EQ for greater equal to operator
 	EQ = "=="
