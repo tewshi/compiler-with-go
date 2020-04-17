@@ -38,7 +38,22 @@ const (
 )
 
 // precedence table: it associates token types with their precedence
-// () [] -> . :: ! ~ & ++ -- * / % + - << >> < <= > >= == != & ^ | && || ?: = += -= *= /= %= &= |= ^= <<= >>= ,
+//  1. () [] -> . ::     (function call, array index, member access)
+//  2. ! ~ & ++ --       (most unary ops: not, incr, decr, ...)
+//  3. * / %             (multiplication, division, modulo)
+//  4. + -               (addition, subtraction)
+//  5. << >>             (bitwise shift left, right)
+//  6. < <= > >=         (comparisons: lt, lt eq, gt, gt eq)
+//  7. == !=             (comparison: eq, not eq)
+//  8. &                 (bitwise AND)
+//  9. ^                 (bitwise exclusive OR, XOR)
+// 10. |                 (bitwise inclusive OR)
+// 11. &&                (logical AND)
+// 12. ||                (logical OR)
+// 13. ?:                (conditional, ternary)
+// 14. = += -= *= /= %=  (ltr assignment ops)
+// 14. &= |= ^= <<= >>=  (ltr assignment ops)
+// 15. ,                 (comma)
 var precedences = map[token.Type]int{
 	token.PLUSEQ:     EQUALS,
 	token.MINUSEQ:    EQUALS,
@@ -282,7 +297,7 @@ func (p *Parser) parseDoubleLiteral() ast.Expression {
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	fmt.Println(value)
+
 	precision := utils.Precision(p.curToken.Literal)
 	lit := &ast.DoubleLiteral{Token: p.curToken, Precision: precision, Value: value}
 	return lit
