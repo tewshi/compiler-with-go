@@ -110,6 +110,25 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"2 % 4.0 * 5^2 - 2 / 4 == 50", true},
 		{"2.0 % 4 * 5^2 - 2 / 4 == 50", true},
 		{"2.0 % 4.0 * 5.0^2.0 - 2.0 / 4.0 == 49.5", true},
+
+		{"let x = 1.0;x++; x == 2.0", true},
+		{"let x = 1.0;++x; x == 2.0", true},
+		{"let x = 1.0;x++ == 1.0", true},
+		{"let x = 1.0;++x == 2.0", true},
+		{"let x = 1.0;x--; x == 0.0", true},
+		{"let x = 1.0;--x; x == 0.0", true},
+		{"let x = 1.0;x-- == 1.0", true},
+		{"let x = 1.0;--x == 0.0", true},
+
+		{"true || 2 % 4 * 5^2 >= 2 % 4 * 5^0", true},
+		{"true && true", true},
+		{"true && !true", false},
+		{"true && false", false},
+		{"!true && true", false},
+		{"true || true", true},
+		{"true || !true", true},
+		{"true || false", true},
+		{"!true || true", true},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
