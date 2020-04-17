@@ -493,6 +493,14 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			`--x; z`,
 			"(--x)z",
 		},
+		{
+			`x && z`,
+			"(x && z)",
+		},
+		{
+			`x || z`,
+			"(x || z)",
+		},
 	}
 	for _, tt := range tests {
 		l := lexer.NewLexer(tt.input)

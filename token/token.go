@@ -77,6 +77,11 @@ const (
 	// NOTEQ for greater not equal to operator
 	NOTEQ = "!="
 
+	// AND for logical AND operator
+	AND = "&&"
+	// OR for logical OR operator
+	OR = "||"
+
 	// LT for less than operator
 	LT = "<"
 	// GT for greater than operator

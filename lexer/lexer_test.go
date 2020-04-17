@@ -46,6 +46,12 @@ func TestNextToken(t *testing.T) {
 	x++;
 	--x;
 	x--;
+	&&;
+	true&&false;
+	true && false;
+	||;
+	true||false;
+	true || false;
 	`
 	tests := []struct {
 		expectedType    token.Type
@@ -218,6 +224,32 @@ func TestNextToken(t *testing.T) {
 
 		{token.IDENT, "x"},
 		{token.DECREMENT, "--"},
+		{token.SEMICOLON, ";"},
+
+		{token.AND, "&&"},
+		{token.SEMICOLON, ";"},
+
+		{token.TRUE, "true"},
+		{token.AND, "&&"},
+		{token.FALSE, "false"},
+		{token.SEMICOLON, ";"},
+
+		{token.TRUE, "true"},
+		{token.AND, "&&"},
+		{token.FALSE, "false"},
+		{token.SEMICOLON, ";"},
+
+		{token.OR, "||"},
+		{token.SEMICOLON, ";"},
+
+		{token.TRUE, "true"},
+		{token.OR, "||"},
+		{token.FALSE, "false"},
+		{token.SEMICOLON, ";"},
+
+		{token.TRUE, "true"},
+		{token.OR, "||"},
+		{token.FALSE, "false"},
 		{token.SEMICOLON, ";"},
 
 		{token.EOF, ""},

@@ -134,6 +134,28 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.GT, l.ch)
 		}
+	case '&':
+		position := l.position
+		if l.peekChar() == '&' {
+			l.readChar()
+			tok = token.Token{Type: token.AND, Literal: "&&"}
+		} else {
+			l.readChar()
+			l.NextToken()
+			tok.Literal = l.input[position:l.position]
+			tok.Type = token.ILLEGAL
+		}
+	case '|':
+		position := l.position
+		if l.peekChar() == '|' {
+			l.readChar()
+			tok = token.Token{Type: token.OR, Literal: "||"}
+		} else {
+			l.readChar()
+			l.NextToken()
+			tok.Literal = l.input[position:l.position]
+			tok.Type = token.ILLEGAL
+		}
 	case '^':
 		tok = token.Token{Type: token.POWER, Literal: "^"}
 	case '%':
@@ -167,7 +189,7 @@ func (l *Lexer) NextToken() token.Token {
 					tok.Literal = l.input[position:l.position]
 					tok.Type = token.DOUBLE
 				} else {
-					tok.Literal += "." + l.NextToken().Literal
+					tok.Literal += token.PERIOD + l.NextToken().Literal
 					tok.Type = token.ILLEGAL
 				}
 			} else {

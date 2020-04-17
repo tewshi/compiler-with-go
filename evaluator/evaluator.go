@@ -812,10 +812,16 @@ func evalBooleanInfixExpression(operator string, left object.Object, right objec
 	rvalue := right.(*object.Boolean).Value
 
 	switch operator {
+	// == !=
 	case token.NOTEQ:
 		return nativeBoolToBooleanObject(lvalue != rvalue)
 	case token.EQ:
 		return nativeBoolToBooleanObject(lvalue == rvalue)
+	// && ||
+	case token.AND:
+		return nativeBoolToBooleanObject(lvalue && rvalue)
+	case token.OR:
+		return nativeBoolToBooleanObject(lvalue || rvalue)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
