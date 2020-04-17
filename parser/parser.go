@@ -225,8 +225,8 @@ func (p *Parser) registerPrefix(tokenType token.Type, fn prefixParseFn) {
 }
 
 // noPrefixParseFnError sets the error for a prefix expression that has no registered prefix parser
-func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+func (p *Parser) noPrefixParseFnError(t token.Type, l string) {
+	msg := fmt.Sprintf("no prefix parse function for %s found: %s", t, l)
 	p.errors = append(p.errors, msg)
 }
 
@@ -365,7 +365,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// defer untrace(trace("parseExpression"))
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type)
+		p.noPrefixParseFnError(p.curToken.Type, p.curToken.Literal)
 		return nil
 	}
 	leftExp := prefix()
