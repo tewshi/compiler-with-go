@@ -460,4 +460,4 @@ func (cl *CommentLiteral) statementNode() {}
 func (cl *CommentLiteral) TokenLiteral() string { return cl.Token.Literal }
 
 // String string representation of a line comment
-func (cl *CommentLiteral) String() string { return cl.Token.Literal }
+func (cl *CommentLiteral) String() string { return "" }
