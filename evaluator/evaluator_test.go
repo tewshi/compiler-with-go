@@ -291,6 +291,18 @@ func TestErrorHandling(t *testing.T) {
 			`{"name": "Monkey"}[fn(x) { x }];`,
 			"unusable as hash key: FUNCTION",
 		},
+		{
+			`{"name": "Monkey"}[1];`,
+			"hash key error: 1",
+		},
+		{
+			`{"1": "Monkey"}[1];`,
+			"hash key error: 1",
+		},
+		{
+			`{1: "Monkey"}["1"];`,
+			"hash key error: 1",
+		},
 
 		{
 			"5 ^ true;",
@@ -367,6 +379,14 @@ func TestErrorHandling(t *testing.T) {
 		{
 			`let x = {}; x--;`,
 			"unknown operator: HASH--",
+		},
+		{
+			`let x = {true: 100}; x[true] += "1";`,
+			"type mismatch: INTEGER += STRING",
+		},
+		{
+			`let x = {true: 100}; x[true] += true;`,
+			"type mismatch: INTEGER += BOOLEAN",
 		},
 	}
 	for _, tt := range tests {
@@ -728,16 +748,8 @@ func TestHashIndexExpressions(t *testing.T) {
 			5,
 		},
 		{
-			`{"foo": 5}["bar"]`,
-			nil,
-		},
-		{
 			`let key = "foo"; {"foo": 5}[key]`,
 			5,
-		},
-		{
-			`{}["foo"]`,
-			nil,
 		},
 		{
 			`let x = nil; x ?? nil`,
