@@ -233,6 +233,7 @@ func TestParsingInfixExpressions(t *testing.T) {
 		{"false == false", false, "==", false},
 		{"false && false", false, "&&", false},
 		{"false || false", false, "||", false},
+		{"x ?? x", "x", "??", "x"},
 	}
 
 	for _, tt := range infixTests {
@@ -542,6 +543,30 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"true || 2 % 4 * 5^2 >= 2 % 4 * 5^0",
 			"(true || (((2 % 4) * (5 ^ 2)) >= ((2 % 4) * (5 ^ 0))))",
+		},
+		{
+			"x ?? y",
+			"(x ?? y)",
+		},
+		{
+			"x ?? 2 % 4 * 5^2 >= 2 % 4 * 5^0",
+			"(x ?? (((2 % 4) * (5 ^ 2)) >= ((2 % 4) * (5 ^ 0))))",
+		},
+		{
+			"2 % 4 * 5^2 >= 2 % 4 * 5^0 ?? x",
+			"((((2 % 4) * (5 ^ 2)) >= ((2 % 4) * (5 ^ 0))) ?? x)",
+		},
+		{
+			"let x = 2 % 4 * 5^2 >= 2 % 4 * 5^0 ?? x",
+			"let x = ((((2 % 4) * (5 ^ 2)) >= ((2 % 4) * (5 ^ 0))) ?? x);",
+		},
+		{
+			"let x = nil",
+			"let x = nil;",
+		},
+		{
+			"let x = y ?? nil",
+			"let x = (y ?? nil);",
 		},
 	}
 	for _, tt := range tests {

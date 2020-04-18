@@ -367,6 +367,20 @@ func (hl *HashLiteral) String() string {
 	return out.String()
 }
 
+// NullLiteral represents null in a statement
+type NullLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (sl *NullLiteral) expressionNode() {}
+
+// TokenLiteral the literal value of the null token
+func (sl *NullLiteral) TokenLiteral() string { return sl.Token.Literal }
+
+// String string representation of a null
+func (sl *NullLiteral) String() string { return sl.Token.Literal }
+
 // IndexExpression represents an index in a statement: arr[1]
 type IndexExpression struct {
 	Token token.Token // The [ token

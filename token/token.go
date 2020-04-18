@@ -27,6 +27,7 @@ var keywords = map[string]Type{
 	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,
+	"nil":    NULL,
 	"if":     IF,
 	"else":   ELSE,
 	"return": RETURN,
@@ -82,6 +83,9 @@ const (
 	// OR for logical OR operator
 	OR = "||"
 
+	// NOTNULLOR for NOT NULL OR operator
+	NOTNULLOR = "??"
+
 	// LT for less than operator
 	LT = "<"
 	// GT for greater than operator
@@ -132,6 +136,8 @@ const (
 	TRUE = "TRUE" // let x = true
 	// FALSE for boolean false
 	FALSE = "FALSE" // let x = false
+	// NIL for null values
+	NULL = "NIL" // let x = nil
 	// IF for conditional if
 	IF = "IF"
 	// ELSE for conditional if

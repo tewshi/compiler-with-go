@@ -17,6 +17,8 @@ const (
 	LOWEST
 	// INPLACE precedence
 	INPLACE
+	// TERNARY
+	TERNARY //. ?? ?:
 	// LOGICALOR
 	LOGICALOR // ||
 	// LOGICALAND
@@ -54,7 +56,7 @@ const (
 // 10. |                 (bitwise inclusive OR)
 // 11. &&                (logical AND)
 // 12. ||                (logical OR)
-// 13. ?:                (conditional, ternary)
+// 13. ?: ??             (conditional, ternary)
 // 14. = += -= *= /= %=  (ltr assignment ops)
 // 14. &= |= ^= <<= >>=  (ltr assignment ops)
 // 15. ,                 (comma)
@@ -63,6 +65,7 @@ var precedences = map[token.Type]int{
 	token.MINUSEQ:    INPLACE,
 	token.SLASHEQ:    INPLACE,
 	token.ASTERISKEQ: INPLACE,
+	token.NOTNULLOR:  TERNARY,
 	token.OR:         LOGICALOR,
 	token.AND:        LOGICALAND,
 	token.EQ:         EQUALS,
@@ -127,6 +130,9 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 
+	// register null parser
+	p.registerPrefix(token.NULL, p.parseNull)
+
 	// register grouped expression parser
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 
@@ -156,6 +162,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.registerInfix(token.AND, p.parseInfixExpression)
 	p.registerInfix(token.OR, p.parseInfixExpression)
+	p.registerInfix(token.NOTNULLOR, p.parseInfixExpression)
 
 	p.registerInfix(token.LTEQ, p.parseInfixExpression)
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
@@ -429,6 +436,12 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		var leftType string
 
 		switch left.(type) {
+		case *ast.InfixExpression, *ast.PrefixExpression, *ast.SuffixExpression:
+			leftType = "EXPRESSION"
+		case *ast.IndexExpression:
+			leftType = "INDEX EXPRESSION"
+		case *ast.CallExpression:
+			leftType = "CALL EXPRESSION"
 		case *ast.IntegerLiteral:
 			leftType = token.INT
 		case *ast.DoubleLiteral:
@@ -441,8 +454,16 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 			leftType = token.ILLEGAL
 		}
 
-		if _, ok := left.(*ast.Identifier); !ok {
+		if _, ok := left.(*ast.Identifier); !ok && leftType != "INDEX EXPRESSION" {
 			msg := fmt.Sprintf("the infix operator %s requires %s on the left, %s found", p.curToken.Literal, token.IDENT, leftType)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+	}
+
+	if p.curToken.Literal == token.NOTNULLOR {
+		if _, ok := left.(*ast.NullLiteral); ok {
+			msg := fmt.Sprintf("%s literal not allowed on the left of the infix operator %s, %s found", token.NULL, token.NOTNULLOR, token.NULL)
 			p.errors = append(p.errors, msg)
 			return nil
 		}
@@ -488,6 +509,10 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 
 func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
+func (p *Parser) parseNull() ast.Expression {
+	return &ast.NullLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
