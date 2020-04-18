@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"monkey/lexer"
 	"monkey/object"
 	"monkey/parser"
@@ -764,6 +765,100 @@ func TestHashIndexExpressions(t *testing.T) {
 			2,
 		},
 		{
+			`1+1 ?? nil`,
+			2,
+		},
+		{
+			`1+1-0 ?? nil`,
+			2,
+		},
+		{
+			`1.0+1.0 ?? nil`,
+			2.0,
+		},
+		{
+			`{true: 5}[true]++`,
+			5,
+		},
+		{
+			`{true: 5}[true]--`,
+			5,
+		},
+		{
+			`++{true: 5}[true]`,
+			6,
+		},
+		{
+			`--{true: 5}[true]`,
+			4,
+		},
+		{
+			`let x = {true: 5}; ++x[true]`,
+			6,
+		},
+		{
+			`let x = {true: 5}; --x[true]`,
+			4,
+		},
+		{
+			`let x = {true: 5}; x[true] += 1; x[true]`,
+			6,
+		},
+		{
+			`let x = {true: 5}; x[true] -= 1; x[true]`,
+			4,
+		},
+		{
+			`let x = {true: 5}; x[true] *= 2; x[true]`,
+			10,
+		},
+		{
+			`let x = {true: 5}; x[true] /= 2; x[true]`,
+			2,
+		},
+
+		{
+			`{true: 5.0}[true]++`,
+			5.0,
+		},
+		{
+			`{true: 5.0}[true]--`,
+			5.0,
+		},
+		{
+			`++{true: 5.0}[true]`,
+			6.0,
+		},
+		{
+			`--{true: 5.0}[true]`,
+			4.0,
+		},
+		{
+			`let x = {true: 5.0}; ++x[true]`,
+			6.0,
+		},
+		{
+			`let x = {true: 5.0}; --x[true]`,
+			4.0,
+		},
+		{
+			`let x = {true: 5.0}; x[true] += 1; x[true]`,
+			6.0,
+		},
+		{
+			`let x = {true: 5.0}; x[true] -= 1; x[true]`,
+			4.0,
+		},
+		{
+			`let x = {true: 5.001}; x[true] *= 2; x[true]`,
+			10.002,
+		},
+		{
+			`let x = {true: 5.0}; x[true] /= 2; x[true]`,
+			2.5,
+		},
+
+		{
 			`100 ?? nil`,
 			100,
 		},
@@ -827,8 +922,11 @@ func TestHashIndexExpressions(t *testing.T) {
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
 		integer, ok := tt.expected.(int)
+		double, okd := tt.expected.(float64)
 		if ok {
 			testIntegerObject(t, evaluated, int64(integer))
+		} else if okd {
+			testDoubleObject(t, evaluated, double)
 		} else {
 			testNullObject(t, evaluated)
 		}
@@ -852,6 +950,21 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	if result.Value != expected {
 		t.Errorf("object has wrong value. got=%d, want=%d",
 			result.Value, expected)
+		return false
+	}
+
+	return true
+}
+
+func testDoubleObject(t *testing.T, obj object.Object, expected float64) bool {
+	result, ok := obj.(*object.Double)
+	if !ok {
+		t.Errorf("object is not Double. got=%T (%+v)", obj, obj)
+		return false
+	}
+	if result.Value != expected {
+		t.Errorf("object has wrong value. got=%s, want=%s",
+			fmt.Sprint(result.Value), fmt.Sprint(expected))
 		return false
 	}
 
