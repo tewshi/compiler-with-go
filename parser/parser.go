@@ -364,6 +364,17 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	if !p.expectPeek(token.RBRACKET) {
 		return nil
 	}
+	switch p.peekToken.Type {
+	case token.INCREMENT, token.DECREMENT:
+		suffix := p.suffixParseFns[p.peekToken.Type]
+		if suffix == nil {
+			p.noSuffixParseFnError(p.peekToken.Type)
+			return nil
+		}
+		p.nextToken()
+
+		return suffix(exp)
+	}
 	return exp
 }
 
