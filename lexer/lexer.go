@@ -156,6 +156,17 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = l.input[position:l.position]
 			tok.Type = token.ILLEGAL
 		}
+	case '?':
+		position := l.position
+		if l.peekChar() == '?' {
+			l.readChar()
+			tok = token.Token{Type: token.NOTNULLOR, Literal: "??"}
+		} else {
+			l.readChar()
+			l.NextToken()
+			tok.Literal = l.input[position:l.position]
+			tok.Type = token.ILLEGAL
+		}
 	case '^':
 		tok = token.Token{Type: token.POWER, Literal: "^"}
 	case '%':

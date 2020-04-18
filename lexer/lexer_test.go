@@ -52,6 +52,9 @@ func TestNextToken(t *testing.T) {
 	||;
 	true||false;
 	true || false;
+	x??y;
+	x ?? y;
+	let x = nil;
 	`
 	tests := []struct {
 		expectedType    token.Type
@@ -250,6 +253,22 @@ func TestNextToken(t *testing.T) {
 		{token.TRUE, "true"},
 		{token.OR, "||"},
 		{token.FALSE, "false"},
+		{token.SEMICOLON, ";"},
+
+		{token.IDENT, "x"},
+		{token.NOTNULLOR, "??"},
+		{token.IDENT, "y"},
+		{token.SEMICOLON, ";"},
+
+		{token.IDENT, "x"},
+		{token.NOTNULLOR, "??"},
+		{token.IDENT, "y"},
+		{token.SEMICOLON, ";"},
+
+		{token.LET, "let"},
+		{token.IDENT, "x"},
+		{token.ASSIGN, "="},
+		{token.NULL, "nil"},
 		{token.SEMICOLON, ";"},
 
 		{token.EOF, ""},
