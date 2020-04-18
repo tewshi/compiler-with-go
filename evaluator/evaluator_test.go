@@ -129,6 +129,18 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"true || !true", true},
 		{"true || false", true},
 		{"!true || true", true},
+
+		{"!nil", true},
+		{"!!nil", false},
+		{"nil == nil", true},
+		{"nil != nil", false},
+		{"false ?? false", false},
+		{"true ?? true", true},
+		{"false ?? true", false},
+		{"true ?? false", true},
+		{"let x = true; x ?? false", true},
+		{"let x = nil; x ?? true", true},
+		{"let x = nil; x ?? false", false},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -726,6 +738,22 @@ func TestHashIndexExpressions(t *testing.T) {
 		{
 			`{}["foo"]`,
 			nil,
+		},
+		{
+			`let x = nil; x ?? nil`,
+			nil,
+		},
+		{
+			`nil ?? nil`,
+			nil,
+		},
+		{
+			`(1+1) ?? nil`,
+			2,
+		},
+		{
+			`100 ?? nil`,
+			100,
 		},
 		{
 			`{5: 5}[5]`,

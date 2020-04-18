@@ -96,6 +96,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 
+	case *ast.NullLiteral:
+		return NULL
+
 		/* Comments never get here, lexer recognizes them, but the parser strips them off
 		* case *ast.CommentLiteral:
 		* // we return nil coz we dont evaluate comments
@@ -436,14 +439,8 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		r = right.(*object.Identifier).Value
 	}
 	switch {
-	case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
-		return evalIntegerInfixExpression(operator, l, r)
-	case l.Type() == object.DOUBLEOBJ && r.Type() == object.DOUBLEOBJ:
-		return evalDoubleInfixExpression(operator, l, r)
-	case l.Type() == object.BOOLEANOBJ && r.Type() == object.BOOLEANOBJ:
-		return evalBooleanInfixExpression(operator, l, r)
-	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
-		return evalStringInfixExpression(operator, l, r)
+	case operator == token.NOTNULLOR:
+		return evalNullOrOperatorExpression(l, r)
 
 	case operator == token.POWER:
 		switch {
@@ -451,6 +448,10 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 			return evalPowerOperatorDoubleIntegerExpression(l, r)
 		case l.Type() == object.DOUBLEOBJ && r.Type() == object.INTEGEROBJ:
 			return evalPowerOperatorDoubleIntegerExpression(l, r)
+		case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
+			return evalIntegerInfixExpression(operator, l, r)
+		case l.Type() == object.DOUBLEOBJ && r.Type() == object.DOUBLEOBJ:
+			return evalDoubleInfixExpression(operator, l, r)
 		default:
 			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 		}
@@ -461,9 +462,22 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 			return evalModulusOperatorDoubleIntegerExpression(l, r)
 		case l.Type() == object.DOUBLEOBJ && r.Type() == object.INTEGEROBJ:
 			return evalModulusOperatorDoubleIntegerExpression(l, r)
+		case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
+			return evalIntegerInfixExpression(operator, l, r)
+		case l.Type() == object.DOUBLEOBJ && r.Type() == object.DOUBLEOBJ:
+			return evalDoubleInfixExpression(operator, l, r)
 		default:
 			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 		}
+
+	case l.Type() == object.INTEGEROBJ && r.Type() == object.INTEGEROBJ:
+		return evalIntegerInfixExpression(operator, l, r)
+	case l.Type() == object.DOUBLEOBJ && r.Type() == object.DOUBLEOBJ:
+		return evalDoubleInfixExpression(operator, l, r)
+	case l.Type() == object.BOOLEANOBJ && r.Type() == object.BOOLEANOBJ:
+		return evalBooleanInfixExpression(operator, l, r)
+	case l.Type() == object.STRINGOBJ && r.Type() == object.STRINGOBJ:
+		return evalStringInfixExpression(operator, l, r)
 
 	// + += - -= * *= / /=
 	// < <= > >=
@@ -480,6 +494,10 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 		case l.Type() == object.DOUBLEOBJ && r.Type() == object.INTEGEROBJ:
 			dr := &object.Double{Value: float64(r.(*object.Integer).Value), Precision: 0}
 			return evalDoubleInfixExpression(operator, l, dr)
+		case operator == token.EQ:
+			return nativeBoolToBooleanObject(l == r)
+		case operator == token.NOTEQ:
+			return nativeBoolToBooleanObject(l != r)
 		default:
 			return newError("type mismatch: %s %s %s", l.Type(), operator, r.Type())
 		}
@@ -752,8 +770,7 @@ func evalDoubleInfixExpression(operator string, left object.Object, right object
 }
 
 func evalPowerOperatorDoubleIntegerExpression(left object.Object, right object.Object) object.Object {
-
-	if !((left.Type() != object.INTEGEROBJ || left.Type() != object.DOUBLEOBJ) && (right.Type() != object.INTEGEROBJ || right.Type() != object.DOUBLEOBJ)) {
+	if !((left.Type() == object.INTEGEROBJ || left.Type() == object.DOUBLEOBJ) && (right.Type() == object.INTEGEROBJ || right.Type() == object.DOUBLEOBJ)) {
 		return newError("type mismatch: %s ^ %s", left.Type(), right.Type())
 	}
 
@@ -878,6 +895,13 @@ func evalStringInfixExpression(operator string, left object.Object, right object
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalNullOrOperatorExpression(left object.Object, right object.Object) object.Object {
+	if left == NULL {
+		return right
+	}
+	return left
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
