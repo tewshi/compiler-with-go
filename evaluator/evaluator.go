@@ -296,6 +296,7 @@ func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) o
 		default:
 			return newError("unknown operator: %s%s", pref.Operator, r.Type())
 		}
+
 	case token.INCREMENT:
 
 		var result object.Object
@@ -306,7 +307,73 @@ func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) o
 		case isIdentifier && r.Type() == object.DOUBLEOBJ:
 			result = evalIncrementOperatorExpression(r)
 		default:
-			result = newError("unknown operator: %s%s", pref.Operator, r.Type())
+			switch pref.Right.(type) {
+			case *ast.IndexExpression:
+				indexExp := pref.Right.(*ast.IndexExpression)
+				val := Eval(pref.Right, env)
+
+				if val.Type() == object.ERROROBJ {
+					return val
+				}
+
+				var evaluated object.Object
+
+				switch {
+				case r.Type() == object.INTEGEROBJ:
+					evaluated = evalIncrementOperatorExpression(val)
+				case r.Type() == object.DOUBLEOBJ:
+					evaluated = evalIncrementOperatorExpression(val)
+				default:
+					evaluated = newError("unknown operator: %s%s", pref.Operator, val.Type())
+				}
+
+				if evaluated.Type() == object.ERROROBJ {
+					return evaluated
+				}
+
+				switch indexExp.Left.(type) {
+				case *ast.Identifier:
+					identifier := indexExp.Left.(*ast.Identifier)
+					item, ok := env.Get(identifier.String())
+
+					if ok {
+						switch item.(type) {
+						case *object.Array:
+							arr := item.(*object.Array)
+							index := indexExp.Index.(*ast.IntegerLiteral).Value
+
+							arr.Elements[index] = evaluated
+							env.Set(identifier.String(), arr)
+							return evaluated
+
+						case *object.Hash:
+							hash := updateHash(item, indexExp.Index, evaluated)
+
+							env.Set(identifier.String(), hash)
+							return evaluated
+
+						default:
+							result = newError("%s requires %s or %s: found %s%s", pref.Operator, object.ARRAYOBJ, object.HASHOBJ, pref.Operator, item.Type())
+						}
+					}
+				case *ast.ArrayLiteral:
+					arr := evalArrayLiteral(indexExp.Left.(*ast.ArrayLiteral), env).(*object.Array)
+					index := indexExp.Index.(*ast.IntegerLiteral).Value
+					arr.Elements[index] = evaluated
+					// return arr
+					return evaluated
+
+				case *ast.HashLiteral:
+					hash := evalHashLiteral(indexExp.Left.(*ast.HashLiteral), env)
+					updateHash(hash, indexExp.Index, evaluated)
+					return evaluated
+
+				default:
+					result = newError("unknown operator: %s%s", pref.Operator, r.Type())
+				}
+			default:
+				result = newError("unknown operator: %s%s", pref.Operator, r.Type())
+			}
 		}
 
 		if result.Type() == object.ERROROBJ {
@@ -327,6 +394,70 @@ func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) o
 		case isIdentifier && r.Type() == object.DOUBLEOBJ:
 			result = evalDecrementOperatorExpression(r)
 		default:
+			switch pref.Right.(type) {
+			case *ast.IndexExpression:
+				indexExp := pref.Right.(*ast.IndexExpression)
+				val := Eval(pref.Right, env)
+
+				if val.Type() == object.ERROROBJ {
+					return val
+				}
+
+				var evaluated object.Object
+
+				switch {
+				case r.Type() == object.INTEGEROBJ:
+					evaluated = evalDecrementOperatorExpression(val)
+				case r.Type() == object.DOUBLEOBJ:
+					evaluated = evalDecrementOperatorExpression(val)
+				default:
+					evaluated = newError("unknown operator: %s%s", pref.Operator, val.Type())
+				}
+
+				if evaluated.Type() == object.ERROROBJ {
+					return evaluated
+				}
+
+				switch indexExp.Left.(type) {
+				case *ast.Identifier:
+					identifier := indexExp.Left.(*ast.Identifier)
+					item, ok := env.Get(identifier.String())
+
+					if ok {
+						switch item.(type) {
+						case *object.Array:
+							arr := item.(*object.Array)
+							index := indexExp.Index.(*ast.IntegerLiteral).Value
+
+							arr.Elements[index] = evaluated
+							env.Set(identifier.String(), arr)
+							return evaluated
+
+						case *object.Hash:
+							hash := updateHash(item, indexExp.Index, evaluated)
+
+							env.Set(identifier.String(), hash)
+							return evaluated
+
+						default:
+							result = newError("%s requires %s or %s: found %s%s", pref.Operator, object.ARRAYOBJ, object.HASHOBJ, pref.Operator, item.Type())
+						}
+					}
+				case *ast.ArrayLiteral:
+					arr := evalArrayLiteral(indexExp.Left.(*ast.ArrayLiteral), env).(*object.Array)
+					index := indexExp.Index.(*ast.IntegerLiteral).Value
+					arr.Elements[index] = evaluated
+					return evaluated
+
+				case *ast.HashLiteral:
+					hash := evalHashLiteral(indexExp.Left.(*ast.HashLiteral), env)
+					updateHash(hash, indexExp.Index, evaluated)
+					return evaluated
+
+				default:
+					result = newError("unknown operator: %s%s", pref.Operator, r.Type())
+				}
+			}
 			result = newError("unknown operator: %s%s", pref.Operator, r.Type())
 		}
 
@@ -421,6 +552,36 @@ func evalInfixExpression(inf *ast.InfixExpression, env *object.Environment) obje
 		switch inf.Left.(type) {
 		case *ast.Identifier:
 			env.Set(inf.Left.String(), val)
+		case *ast.IndexExpression:
+			indexExp := inf.Left.(*ast.IndexExpression)
+			switch indexExp.Left.(type) {
+			case *ast.Identifier:
+				identifier := indexExp.Left.(*ast.Identifier)
+				item, ok := env.Get(identifier.String())
+				if ok {
+					switch item.(type) {
+					case *object.Array:
+						arr := item.(*object.Array)
+						index := indexExp.Index.(*ast.IntegerLiteral).Value
+						arr.Elements[index] = val
+						env.Set(identifier.String(), arr)
+
+					case *object.Hash:
+						hash := updateHash(item, indexExp.Index, val)
+
+						env.Set(identifier.String(), hash)
+					}
+				}
+			case *ast.ArrayLiteral:
+				arr := evalArrayLiteral(indexExp.Left.(*ast.ArrayLiteral), env).(*object.Array)
+				index := indexExp.Index.(*ast.IntegerLiteral).Value
+				arr.Elements[index] = val
+				return arr
+
+			case *ast.HashLiteral:
+				hash := evalHashLiteral(indexExp.Left.(*ast.HashLiteral), env)
+				return updateHash(hash, indexExp.Index, val)
+			}
 		}
 
 		return nil
@@ -544,7 +705,73 @@ func evalSuffixExpression(suf *ast.SuffixExpression, env *object.Environment) ob
 		case isIdentifier && l.Type() == object.DOUBLEOBJ:
 			result = evalIncrementOperatorExpression(l)
 		default:
-			result = newError("unknown operator: %s%s", l.Type(), operator)
+			switch suf.Left.(type) {
+			case *ast.IndexExpression:
+				indexExp := suf.Left.(*ast.IndexExpression)
+				val := Eval(suf.Left, env)
+
+				if val.Type() == object.ERROROBJ {
+					return val
+				}
+
+				var evaluated object.Object
+
+				switch {
+				case l.Type() == object.INTEGEROBJ:
+					evaluated = evalIncrementOperatorExpression(val)
+				case l.Type() == object.DOUBLEOBJ:
+					evaluated = evalIncrementOperatorExpression(val)
+				default:
+					evaluated = newError("unknown operator: %s%s", val.Type(), suf.Operator)
+				}
+
+				if evaluated.Type() == object.ERROROBJ {
+					return evaluated
+				}
+
+				switch indexExp.Left.(type) {
+				case *ast.Identifier:
+					identifier := indexExp.Left.(*ast.Identifier)
+					item, ok := env.Get(identifier.String())
+
+					if ok {
+						switch item.(type) {
+						case *object.Array:
+							arr := item.(*object.Array)
+							index := indexExp.Index.(*ast.IntegerLiteral).Value
+
+							arr.Elements[index] = evaluated
+							env.Set(identifier.String(), arr)
+							return val
+
+						case *object.Hash:
+							hash := updateHash(item, indexExp.Index, evaluated)
+
+							env.Set(identifier.String(), hash)
+							return val
+
+						default:
+							result = newError("%s requires %s or %s: found %s%s", suf.Operator, object.ARRAYOBJ, object.HASHOBJ, item.Type(), suf.Operator)
+						}
+					}
+				case *ast.ArrayLiteral:
+					arr := evalArrayLiteral(indexExp.Left.(*ast.ArrayLiteral), env).(*object.Array)
+					index := indexExp.Index.(*ast.IntegerLiteral).Value
+					arr.Elements[index] = evaluated
+					// return arr
+					return val
+
+				case *ast.HashLiteral:
+					hash := evalHashLiteral(indexExp.Left.(*ast.HashLiteral), env)
+					updateHash(hash, indexExp.Index, evaluated)
+					return val
+
+				default:
+					result = newError("unknown operator: %s%s", l.Type(), suf.Operator)
+				}
+			default:
+				result = newError("unknown operator: %s%s", l.Type(), suf.Operator)
+			}
 		}
 
 		if result.Type() == object.ERROROBJ {
@@ -565,7 +792,73 @@ func evalSuffixExpression(suf *ast.SuffixExpression, env *object.Environment) ob
 		case isIdentifier && l.Type() == object.DOUBLEOBJ:
 			result = evalDecrementOperatorExpression(l)
 		default:
-			result = newError("unknown operator: %s%s", l.Type(), operator)
+			switch suf.Left.(type) {
+			case *ast.IndexExpression:
+				indexExp := suf.Left.(*ast.IndexExpression)
+				val := Eval(suf.Left, env)
+
+				if val.Type() == object.ERROROBJ {
+					return val
+				}
+
+				var evaluated object.Object
+
+				switch {
+				case l.Type() == object.INTEGEROBJ:
+					evaluated = evalDecrementOperatorExpression(val)
+				case l.Type() == object.DOUBLEOBJ:
+					evaluated = evalDecrementOperatorExpression(val)
+				default:
+					evaluated = newError("unknown operator: %s%s", val.Type(), suf.Operator)
+				}
+
+				if evaluated.Type() == object.ERROROBJ {
+					return evaluated
+				}
+
+				switch indexExp.Left.(type) {
+				case *ast.Identifier:
+					identifier := indexExp.Left.(*ast.Identifier)
+					item, ok := env.Get(identifier.String())
+
+					if ok {
+						switch item.(type) {
+						case *object.Array:
+							arr := item.(*object.Array)
+							index := indexExp.Index.(*ast.IntegerLiteral).Value
+
+							arr.Elements[index] = evaluated
+							env.Set(identifier.String(), arr)
+							return val
+
+						case *object.Hash:
+							hash := updateHash(item, indexExp.Index, evaluated)
+
+							env.Set(identifier.String(), hash)
+							return val
+
+						default:
+							result = newError("%s requires %s or %s: found %s%s", suf.Operator, object.ARRAYOBJ, object.HASHOBJ, item.Type(), suf.Operator)
+						}
+					}
+				case *ast.ArrayLiteral:
+					arr := evalArrayLiteral(indexExp.Left.(*ast.ArrayLiteral), env).(*object.Array)
+					index := indexExp.Index.(*ast.IntegerLiteral).Value
+					arr.Elements[index] = evaluated
+					// return arr
+					return val
+
+				case *ast.HashLiteral:
+					hash := evalHashLiteral(indexExp.Left.(*ast.HashLiteral), env)
+					updateHash(hash, indexExp.Index, evaluated)
+					return val
+
+				default:
+					result = newError("unknown operator: %s%s", l.Type(), suf.Operator)
+				}
+			default:
+				result = newError("unknown operator: %s%s", l.Type(), suf.Operator)
+			}
 		}
 
 		if result.Type() == object.ERROROBJ {
@@ -662,9 +955,29 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	}
 	pair, ok := hashObject.Pairs[key.HashKey()]
 	if !ok {
-		return NULL
+		return newError("hash key error: %s", index.Inspect())
 	}
 	return pair.Value
+}
+
+func updateHash(hash object.Object, index ast.Expression, value object.Object) object.Object {
+	hashed := hash.(*object.Hash)
+	var i object.Hashable
+	switch index.(type) {
+	case *ast.IntegerLiteral:
+		i = &object.Integer{Value: index.(*ast.IntegerLiteral).Value}
+	case *ast.DoubleLiteral:
+		i = &object.Double{Value: index.(*ast.DoubleLiteral).Value, Precision: index.(*ast.DoubleLiteral).Precision}
+	case *ast.StringLiteral:
+		i = &object.String{Value: index.(*ast.StringLiteral).Value}
+	case *ast.Boolean:
+		i = &object.Boolean{Value: index.(*ast.Boolean).Value}
+	}
+	el := hashed.Pairs[i.HashKey()]
+	el.Value = value
+	hashed.Pairs[i.HashKey()] = el
+
+	return hashed
 }
 
 func evalReturnStatement(rs *ast.ReturnStatement, env *object.Environment) object.Object {
