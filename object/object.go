@@ -23,7 +23,7 @@ const (
 	// HASHOBJ represents an hash object
 	HASHOBJ = "HASH"
 	// NULLOBJ represents an nil object
-	NULLOBJ = "NULL"
+	NULLOBJ = "NIL"
 	// NANOBJ represents an nil object
 	NANOBJ = "NAN"
 	// COMMENTOBJ represents an nil object
@@ -195,7 +195,7 @@ type Null struct{}
 func (i *Null) Type() Type { return NULLOBJ }
 
 // Inspect returns a readable string of the Null value
-func (i *Null) Inspect() string { return "null" }
+func (i *Null) Inspect() string { return "nil" }
 
 // Nan represents not-a-number
 type Nan struct{}
