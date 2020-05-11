@@ -12,3 +12,27 @@ go run main.go
 ```
 
 this will spawn the REPL console for testing
+
+
+to build the app binaary
+```bash
+go build -o bin/app
+```
+
+this will build the app for the platform.
+
+
+to run the built binary
+```bash
+./bin/app
+```
+
+this will spawn the REPL console for coding
+
+
+to run tests
+```bash
+go test ./evaluator ./lexer ./object ./ast ./parser
+```
+
+this will run all the tests

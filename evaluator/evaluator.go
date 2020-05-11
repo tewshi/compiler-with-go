@@ -255,9 +255,7 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 
 func isTruthy(obj object.Object) bool {
 	switch obj {
-	case NULL:
-		return false
-	case FALSE:
+	case NULL, FALSE:
 		return false
 	case TRUE:
 		return true
@@ -475,16 +473,7 @@ func evalPrefixExpression(pref *ast.PrefixExpression, env *object.Environment) o
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {
-	switch right {
-	case TRUE:
-		return FALSE
-	case FALSE:
-		return TRUE
-	case NULL:
-		return TRUE
-	default:
-		return FALSE
-	}
+	return nativeBoolToBooleanObject(!isTruthy(right))
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
@@ -601,7 +590,7 @@ func evalInfixExpressionByType(operator string, left object.Object, right object
 	}
 	switch {
 	case operator == token.NOTNULLOR:
-		return evalNullOrOperatorExpression(l, r)
+		return evalNotNullOrOperatorExpression(l, r)
 
 	case operator == token.POWER:
 		switch {
@@ -1210,7 +1199,7 @@ func evalStringInfixExpression(operator string, left object.Object, right object
 	}
 }
 
-func evalNullOrOperatorExpression(left object.Object, right object.Object) object.Object {
+func evalNotNullOrOperatorExpression(left object.Object, right object.Object) object.Object {
 	if left == NULL {
 		return right
 	}
