@@ -6,13 +6,13 @@ import (
 )
 
 var builtins = map[string]*object.Builtin{
-	"len":   &object.Builtin{Fn: _len},
-	"first": &object.Builtin{Fn: _first},
-	"last":  &object.Builtin{Fn: _last},
-	"rest":  &object.Builtin{Fn: _rest},
-	"push":  &object.Builtin{Fn: _push},
-	"puts":  &object.Builtin{Fn: _puts},
-	"type":  &object.Builtin{Fn: _type},
+	"len":   {Fn: _len},
+	"first": {Fn: _first},
+	"last":  {Fn: _last},
+	"rest":  {Fn: _rest},
+	"push":  {Fn: _push},
+	"puts":  {Fn: _puts},
+	"type":  {Fn: _type},
 }
 
 func _len(args ...object.Object) object.Object {
